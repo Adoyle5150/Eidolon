@@ -1,0 +1,34 @@
+🪄 What I meant by “models and stuff” (advanced future Tier 4-5):
+1️⃣ Vision-Language Models (VLMs):
+
+Like BLIP-2, LLaVA, Fuyu, DeepSeek-VL, etc.
+
+These can actually understand screenshots, not just OCR text.
+
+Example: Show your screen, ask “Where is the error in this code?” and it highlights it.
+
+Requires GPU and higher VRAM, but local setup possible.
+
+2️⃣ Layout & UI models:
+
+Using Donut, LayoutLM to understand UI structures in screenshots.
+
+Can parse tables, recognize buttons, and understand structure in your IDE or browser.
+
+3️⃣ Action / Agent Models:
+
+Let Eidolon not just understand your screen but act on it:
+
+“Click the run button”
+
+“Open Discord”
+
+“Type the code for the function I just dictated”
+
+Using either scripted automation + vision detection or VLM + action transformers.
+
+4️⃣ Memory-enhanced learning loops:
+
+Eidolon sees what you do on screen, watches which errors you fix, and learns patterns to suggest them next time.
+
+Not instant learning; requires structured memory and reward hooks.

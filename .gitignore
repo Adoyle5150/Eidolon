@@ -1,0 +1,85 @@
+# === Python artifacts ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+
+# === Virtual environments ===
+venv/
+.env/
+.envrc
+
+# === IDE/editor configs ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# === OS junk ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# === Logs ===
+*.log
+
+# === Test/coverage artifacts ===
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+
+# === Jupyter/Notebook ===
+*.ipynb_checkpoints
+
+# === Model and data artifacts ===
+*.gguf
+*.ckpt
+*.bin
+*.pt
+*.h5
+
+# === Eidolon runtime data ===
+# These are generated or ephemeral, not needed in git
+vision_memory.json
+chats/*.json
+web_cache/
+screenshots/
+captures/
+*.png
+*.jpg
+*.jpeg
+
+# === Backups and design notes ===
+*.bak
+*.backup
+*~
+*.swp
+*.tmp
+
+# === Node / front-end dev (if applicable) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === QML and build caches ===
+*.qmlc
+*.jsc
+
+# === Eidolon specific backups ===
+Eidolon Backup/
+
+# === Env config ===
+.env
+eidolon_config.json
+
+llama.cpp/
+vcpkg/
+

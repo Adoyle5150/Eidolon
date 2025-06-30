@@ -1,0 +1,155 @@
+[
+  {
+    "timestamp": "2025-06-27T12:52:51.649066",
+    "query": "who is the current president of the united states 2023",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 2038,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T12:55:29.352379",
+    "query": "the Latest AI model releases June 2025 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1956,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T12:57:18.338606",
+    "query": "Major LLM releases this month",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 1880,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T13:00:04.404670",
+    "query": "Compare the most recent open-source 7B LLM models (Mixtral, Qwen2, DeepSeek, LLaMA 3) released in 2025 in terms of coding capabilities, reasoning benchmarks, context length, and hardware efficiency. Also, identify which models are best for local inference on consumer GPUs. 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1633,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T15:15:23.458919",
+    "query": "Your birthday",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 413,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T15:25:13.397349",
+    "query": "remember my birthday now 2025",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 512,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T15:30:20.838431",
+    "query": "Is today August 6, 2024?",
+    "successful_extractions": 6,
+    "total_results": 8,
+    "success_rate": 0.75,
+    "results_length": 1594,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T15:36:26.512189",
+    "query": "August 6, 1998",
+    "successful_extractions": 6,
+    "total_results": 8,
+    "success_rate": 0.75,
+    "results_length": 561,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T16:31:06.889883",
+    "query": "August 6, 1998 birthday",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 496,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T16:32:51.958240",
+    "query": "your wife's name",
+    "successful_extractions": 6,
+    "total_results": 8,
+    "success_rate": 0.75,
+    "results_length": 593,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T16:59:17.951784",
+    "query": "August 6, 1998",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 871,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-27T18:44:30.591909",
+    "query": "Best movie to watch today 2025",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 1047,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-28T01:19:30.109982",
+    "query": "hello greetings latest updates information",
+    "successful_extractions": 6,
+    "total_results": 8,
+    "success_rate": 0.75,
+    "results_length": 783,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-29T02:54:24.632474",
+    "query": "the president of the united states today 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1966,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-29T03:08:02.164451",
+    "query": "did you know you can see my screen 2025",
+    "successful_extractions": 5,
+    "total_results": 8,
+    "success_rate": 0.625,
+    "results_length": 1315,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-29T18:09:05.283456",
+    "query": "the president of the united states today 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1696,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-29T22:47:50.656056",
+    "query": "the president of the united states today 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1696,
+    "intelligent_mode": true
+  }
+]
