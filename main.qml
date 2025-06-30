@@ -17,6 +17,8 @@ ApplicationWindow {
     color: "transparent"  // ✅ This is important
     flags: Qt.FramelessWindowHint | Qt.Window
     property string assistantState: "ready"
+    property bool backendReady: false
+
 
     Rectangle {
         id: backgroundFixLayer
@@ -535,6 +537,7 @@ ApplicationWindow {
                                         mainEntryField.text = ""
                                     }
                                 }
+
                                 Keys.onPressed: (event) => {
                                     if (event.key === Qt.Key_Return && !(event.modifiers & Qt.ShiftModifier)) {
                                         accepted()
@@ -542,6 +545,7 @@ ApplicationWindow {
                                     }
                                 }
                             }
+
 
                             Button {
                                 text: "Send"
@@ -793,6 +797,25 @@ ApplicationWindow {
             }
         }
     }
+
+    Connections {
+    target: backend
+
+    function onMessageReceived(role, content) {
+        console.log("📥 Message received from backend:", role, content)
+        appendMessage(role, content)
+    }
+
+    function onResponseReceived(content) {
+        console.log("✅ Response received from backend:", content)
+        appendMessage("assistant", content)
+    }
+
+    function onMessageSent(text) {
+        console.log("📤 Message sent from QML:", text)
+    }
+}
+
 
     // === Connect to backend when component is ready ===
     Component.onCompleted: {

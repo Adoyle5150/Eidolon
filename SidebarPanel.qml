@@ -17,37 +17,40 @@ Item {
         return (typeof sidebarBackend !== "undefined") ? sidebarBackend : null
     }
 
-    Connections {
-        target: getBackend()
-        enabled: getBackend() !== null
+    // Fixed: Use Loader to safely handle Connections when backend is available
+    Loader {
+        active: getBackend() !== null
+        sourceComponent: Connections {
+            target: getBackend()
 
-        function onSidebarVisibilityChanged(visible) {
-            sidebarVisible = visible
-            sidebarWidth = visible ? 280 : 44
-        }
-
-        function onChatMessageAdded(chatName, message) {
-            console.log("💾 Chat message added, triggering save:", chatName)
-            var backend = getBackend()
-            if (backend) {
-                backend.saveCurrentChat()
+            function onSidebarVisibilityChanged(visible) {
+                sidebarVisible = visible
+                sidebarWidth = visible ? 280 : 44
             }
-        }
 
-        function onChatHistoryChanged() {
-            console.log("📝 Chat history updated, refreshing list")
-            var backend = getBackend()
-            if (chatList && chatList.model && backend) {
-                chatList.model = backend.chatHistory
+            function onChatMessageAdded(chatName, message) {
+                console.log("💾 Chat message added, triggering save:", chatName)
+                var backend = getBackend()
+                if (backend) {
+                    backend.saveCurrentChat()
+                }
             }
-        }
 
-        function onCurrentChatChanged(newChatName) {
-            console.log("🔄 Current chat changed to:", newChatName)
-            currentChatName = newChatName
-            var backend = getBackend()
-            if (backend) {
-                backend.saveCurrentChat()
+            function onChatHistoryChanged() {
+                console.log("📝 Chat history updated, refreshing list")
+                var backend = getBackend()
+                if (chatList && chatList.model && backend) {
+                    chatList.model = backend.chatHistory
+                }
+            }
+
+            function onCurrentChatChanged(newChatName) {
+                console.log("🔄 Current chat changed to:", newChatName)
+                currentChatName = newChatName
+                var backend = getBackend()
+                if (backend) {
+                    backend.saveCurrentChat()
+                }
             }
         }
     }
@@ -278,84 +281,84 @@ Item {
                     }
                     
                     ScrollView {
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+
+                    ListView {
+                        id: chatList
                         Layout.fillHeight: true
                         Layout.fillWidth: true
-                        
-                        ListView {
-                            id: chatList
-                            spacing: 4
-                            
-                            model: {
-                                var backend = getBackend()
-                                return (backend && backend.chatHistory) ? backend.chatHistory : []
+                        model: sidebarBackend.chatHistory
+
+                        onCountChanged: {
+                            console.log("📋 Chat list updated, count:", count)
+                        }
+
+                        // Replace the ListView delegate in your SidebarPanel.qml with this version:
+                        delegate: Rectangle {
+                            width: ListView.view.width
+                            height: 60
+                            color: mouseArea.pressed ? "#40ffffff" : (mouseArea.containsMouse ? "#25ffffff" : "#10ffffff")
+                            radius: 10
+                            border.color: mouseArea.containsMouse ? "#30ffffff" : "#15ffffff"
+                            border.width: 1
+
+                            scale: mouseArea.pressed ? 0.98 : (mouseArea.containsMouse ? 1.02 : 1.0)
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                            Behavior on scale { NumberAnimation { duration: 150 } }
+                            Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                            ColumnLayout {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.margins: 14
+                                spacing: 4
+
+                                Text {
+                                    text: (modelData && modelData.name) ? modelData.name : "Untitled Chat"
+                                    color: "#ffffff"
+                                    font.pixelSize: 14
+                                    font.weight: Font.Medium
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                }
+
+                                Text {
+                                    text: (modelData && modelData.timestamp) ? modelData.timestamp : "Unknown time"
+                                    color: "#999999"
+                                    font.pixelSize: 11
+                                    Layout.fillWidth: true
+                                }
                             }
-                            
-                            onModelChanged: {
-                                console.log("📋 Chat list model updated, count:", model ? model.length : 0)
-                            }
-                            
-                            delegate: Rectangle {
-                                width: ListView.view.width
-                                height: 60
-                                color: mouseArea.pressed ? "#40ffffff" : (mouseArea.containsMouse ? "#25ffffff" : "#10ffffff")
-                                radius: 10
-                                border.color: mouseArea.containsMouse ? "#30ffffff" : "#15ffffff"
-                                border.width: 1
-                                
-                                scale: mouseArea.pressed ? 0.98 : (mouseArea.containsMouse ? 1.02 : 1.0)
-                                
-                                Behavior on color { ColorAnimation { duration: 150 } }
-                                Behavior on scale { NumberAnimation { duration: 150 } }
-                                Behavior on border.color { ColorAnimation { duration: 150 } }
-                                
-                                ColumnLayout {
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.margins: 14
-                                    spacing: 4
-                                    
-                                    Text {
-                                        text: (modelData && modelData.name) ? modelData.name : (name || "Untitled Chat")
-                                        color: "#ffffff"
-                                        font.pixelSize: 14
-                                        font.weight: Font.Medium
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
+
+                            MouseArea {
+                                id: mouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: {
+                                    const backend = getBackend()
+                                    if (!backend) {
+                                        console.log("⚠️ Backend not available.")
+                                        return
                                     }
-                                    
-                                    Text {
-                                        text: (modelData && modelData.timestamp) ? modelData.timestamp : (timestamp || "Unknown time")
-                                        color: "#999999"
-                                        font.pixelSize: 11
-                                        Layout.fillWidth: true
+
+                                    const chatName = (modelData && modelData.name) ? modelData.name : "Untitled Chat"
+                                    if (backend.currentChatName !== chatName) {
+                                        console.log("💾 Saving current chat before switching to:", chatName)
+                                        backend.saveCurrentChat()
+                                        backend.loadChat(chatName)
+                                    } else {
+                                        console.log("🟡 Ignored duplicate chat load:", chatName)
                                     }
                                 }
-                                
-                                MouseArea {
-                                    id: mouseArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: {
-                                        var backend = getBackend()
-                                        if (!backend) return
-                                        
-                                        var chatName = (modelData && modelData.name) ? modelData.name : (name || "Untitled Chat")
-                                        if (backend.currentChatName !== chatName) {
-                                            console.log("💾 Saving current chat before switching to:", chatName)
-                                            backend.saveCurrentChat()
-                                            backend.loadChat(chatName)
-                                        } else {
-                                            console.log("🟡 Ignored duplicate chat load:", chatName)
-                                        }
-                                    }
-                                }    
                             }
                         }
-                    }
-                }
+                    }                   
+                }               
             }
-            
+        }
             // User Profile Section
             Rectangle {
                 Layout.fillWidth: true
@@ -596,9 +599,14 @@ Item {
                                 border.color: "#555555"
                                 border.width: 1
                                 
-                                property bool switchActive: {
+                                // Fixed: Initialize switchActive as false, set it in Component.onCompleted
+                                property bool switchActive: false
+                                
+                                Component.onCompleted: {
                                     var backend = getBackend()
-                                    return backend ? backend.animatedTypingEnabled : false
+                                    if (backend && backend.animatedTypingEnabled !== undefined) {
+                                        customSwitch.switchActive = backend.animatedTypingEnabled
+                                    }
                                 }
                                 
                                 Behavior on color { ColorAnimation { duration: 200 } }
@@ -629,13 +637,16 @@ Item {
                                     }
                                 }
                                 
-                                Connections {
-                                    target: getBackend()
-                                    enabled: getBackend() !== null
-                                    function onAnimatedTypingEnabledChanged() {
-                                        var backend = getBackend()
-                                        if (backend) {
-                                            customSwitch.switchActive = backend.animatedTypingEnabled
+                                // Fixed: Use Loader for safe Connections
+                                Loader {
+                                    active: getBackend() !== null
+                                    sourceComponent: Connections {
+                                        target: getBackend()
+                                        function onAnimatedTypingEnabledChanged() {
+                                            var backend = getBackend()
+                                            if (backend) {
+                                                customSwitch.switchActive = backend.animatedTypingEnabled
+                                            }
                                         }
                                     }
                                 }
