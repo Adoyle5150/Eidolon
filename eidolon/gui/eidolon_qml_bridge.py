@@ -84,6 +84,7 @@ def setup_qml_bridge(engine, app_context):
     engine.rootContext().setContextProperty("backend", qml_bridge)
     engine.rootContext().setContextProperty("backendReady", True)
 
+
     # Register push_message_func directly
     app_context.push_message_func = lambda role, content: qml_bridge.messageReceived.emit(role, content)
     app_context.gui = qml_bridge

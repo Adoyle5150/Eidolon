@@ -1,0 +1,29 @@
+[
+  {
+    "timestamp": "2025-06-30T21:02:54.074126",
+    "query": "Who won the NBA Finals most recently?",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1173,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-30T21:04:04.869022",
+    "query": "the president of the united states today 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1696,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-30T21:05:25.439119",
+    "query": "What are the top AI tools released in 2025",
+    "successful_extractions": 6,
+    "total_results": 8,
+    "success_rate": 0.75,
+    "results_length": 970,
+    "intelligent_mode": true
+  }
+]

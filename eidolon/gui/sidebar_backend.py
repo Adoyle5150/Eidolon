@@ -250,32 +250,46 @@ class SidebarBackend(QObject):
     @pyqtSlot(str)
     def onChatSaved(self, chat_name):
         print(f"🔄 Chat saved notification received: {chat_name}")
-        self.add_chat_to_history(chat_name)
+        self.add_chat_to_history(chat_name, force_top=False)
         if self._current_chat_name != chat_name:
             self._current_chat_name = chat_name
             self.currentChatChanged.emit(chat_name)
 
-    def add_chat_to_history(self, chat_name, timestamp=None):
-        """Add or update a chat in the history list"""
+    def add_chat_to_history(self, chat_name, timestamp=None, force_top=False):
+        """Add or update a chat in the history list without reordering unless forced."""
         if timestamp is None:
             timestamp = datetime.now().strftime("%m/%d %H:%M")
         
-        new_chat = {
-            'name': chat_name,
-            'timestamp': timestamp,
-            'created': datetime.now().isoformat()
-        }
-        
-        # Remove existing entry for this chat name
-        self._chat_history = [c for c in self._chat_history if c['name'] != chat_name]
-        
-        # Add to beginning of list (most recent first)
-        self._chat_history.insert(0, new_chat)
-        
-        # Save and notify
+        existing_index = next((i for i, c in enumerate(self._chat_history) if c['name'] == chat_name), None)
+
+        if existing_index is not None:
+            # Update timestamp if needed
+            self._chat_history[existing_index]['timestamp'] = timestamp
+            if force_top and existing_index != 0:
+                # Move to top
+                chat_entry = self._chat_history.pop(existing_index)
+                self._chat_history.insert(0, chat_entry)
+                print(f"🔝 Moved chat to top: {chat_name}")
+            else:
+                print(f"✅ Chat already in history, unchanged: {chat_name}")
+        else:
+            # New chat, add at top or bottom
+            new_chat = {
+                'name': chat_name,
+                'timestamp': timestamp,
+                'created': datetime.now().isoformat()
+            }
+            if force_top:
+                self._chat_history.insert(0, new_chat)
+                print(f"➕ Added new chat to top: {chat_name}")
+            else:
+                self._chat_history.append(new_chat)
+                print(f"➕ Added new chat to bottom: {chat_name}")
+
         self.save_chat_history()
         self.chatHistoryChanged.emit()
         print(f"[SidebarBackend] Added/updated chat in history: {chat_name}")
+
 
     def load_chat_history(self):
         """Load chat history from chat_history.json"""

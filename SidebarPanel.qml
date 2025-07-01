@@ -280,21 +280,27 @@ Item {
                         }
                     }
                     
-                    ScrollView {
-                    Layout.fillHeight: true
-                    Layout.fillWidth: true
-
                     ListView {
                         id: chatList
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         model: sidebarBackend.chatHistory
 
+                        // ✅ Prevent auto-scroll on selection
+                        highlightRangeMode: ListView.NoHighlightRange
+                        preferredHighlightBegin: 0
+                        preferredHighlightEnd: 0
+                        highlightMoveDuration: 0
+                        snapMode: ListView.NoSnap
+
+                        // ✅ Allow smooth manual scrolling
+                        interactive: true
+                        cacheBuffer: 500
+
                         onCountChanged: {
                             console.log("📋 Chat list updated, count:", count)
                         }
 
-                        // Replace the ListView delegate in your SidebarPanel.qml with this version:
                         delegate: Rectangle {
                             width: ListView.view.width
                             height: 60
@@ -355,10 +361,10 @@ Item {
                                 }
                             }
                         }
-                    }                   
-                }               
+                    }
+                }
             }
-        }
+
             // User Profile Section
             Rectangle {
                 Layout.fillWidth: true

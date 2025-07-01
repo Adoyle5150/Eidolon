@@ -21,7 +21,8 @@ import threading
 import subprocess
 import requests
 from datetime import datetime
-import clipboard_wrapper as clipboard
+from clipboard_wrapper import ClipboardWrapper
+
 
 
 # ✅ Force Fusion style to allow QML background/contentItem customization
@@ -120,7 +121,9 @@ def main():
     ensure_core_memory()
     app = QGuiApplication(sys.argv)
 
-    # ... existing clipboard setup ...
+    # ✅ Correct clipboard setup
+    qt_clipboard = app.clipboard()
+    clipboard = ClipboardWrapper(qt_clipboard)
 
     # ✅ Create sidebar backend before QML engine
     sidebar_backend = SidebarBackend(app_context)
@@ -133,13 +136,11 @@ def main():
     engine = QQmlApplicationEngine()
     bridge = setup_qml_bridge(engine, app_context)
     app_context.qml_bridge = bridge
-    
+
     # ✅ Context properties - SET BEFORE LOADING QML
     engine.rootContext().setContextProperty("sidebarBackend", app_context.sidebar_backend)
     engine.rootContext().setContextProperty("typingCompleteHandler", on_typing_complete)
-
-    if clipboard:
-        engine.rootContext().setContextProperty("clipboard", clipboard)
+    engine.rootContext().setContextProperty("clipboard", clipboard)
 
     # ✅ Sidebar signals - CONNECT BEFORE LOADING QML
     def on_new_chat():
@@ -182,7 +183,6 @@ def main():
                                 Q_ARG(QVariant, msg.get("role", "assistant")),
                                 Q_ARG(QVariant, msg.get("content", ""))
                             )
-
             else:
                 app_context.chat_history = []
                 if app_context.root:
@@ -212,8 +212,6 @@ def main():
     app_context.root = engine.rootObjects()[0]
     app_context.root.setProperty("assistantState", "ready")
 
-   
-
     def push_message(role, content):
         if app_context.root:
             if role == "assistant":
@@ -235,36 +233,21 @@ def main():
                     print("✅ Assistant message displayed instantly")
                     set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
 
-                # ✅ Save assistant message to chat history
                 if app_context.current_chat_name:
-                    if not app_context.chat_history:
-                        app_context.chat_history = []
                     app_context.chat_history.append({"role": role, "content": content})
-
-                # ✅ Save and refresh sidebar
-                if app_context.current_chat_name and app_context.chat_history:
-                    from eidolon.memory.chat_storage import save_current_chat
                     actual_name = save_current_chat(app_context.current_chat_name, app_context.chat_history)
-
                     if actual_name != app_context.current_chat_name:
                         app_context.current_chat_name = actual_name
                         app_context.sidebar_backend._current_chat_name = actual_name
                         app_context.sidebar_backend.currentChatChanged.emit(actual_name)
 
-                    if app_context.sidebar_backend:
-                        app_context.sidebar_backend.add_chat_to_history(actual_name)
-
-            else:
-                # ❌ REMOVE user/system message UI append here to prevent duplicates
-                pass
-
-
-
+                    # ✅ Only reorder to top when sending/receiving a message
+                    app_context.sidebar_backend.add_chat_to_history(actual_name, force_top=True)
 
     app_context.push_message_func = push_message
     bridge.messageReceived.connect(push_message)
 
-    # Launch LLaMA
+    # Launch LLaMA in the background
     threading.Thread(target=threaded_llama_start, daemon=True).start()
 
     app_context.gui = bridge
@@ -288,14 +271,11 @@ def main():
 
     QTimer.singleShot(100, ensure_chat_loaded)
 
-    # ✅ Store config reference in app_context if needed
     app_context.config = config
 
-    # ✅ Set up web search function if available
     if WEB_SEARCH_AVAILABLE:
         app_context.web_search_func = web_search
 
-    # ✅ Set up vision service if available
     if vision_available:
         try:
             app_context.vision_service = EidolonVision()
@@ -303,7 +283,6 @@ def main():
             print(f"⚠️ Could not initialize vision service: {e}")
 
     return app.exec()
-
 
 if __name__ == "__main__":
     sys.exit(main())

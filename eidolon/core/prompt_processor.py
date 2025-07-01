@@ -9,6 +9,8 @@ from datetime import datetime
 from eidolon.core.ai_handler import ask_server
 from eidolon.core.state_manager import set_assistant_state
 from eidolon.utils.helpers import is_valid_python
+from web.searcher import web_search
+
 
 from eidolon.memory.chat_storage import save_current_chat
 
@@ -16,19 +18,7 @@ from eidolon.memory.chat_storage import save_current_chat
 WEB_SEARCH_AVAILABLE = True  # or False if you want to disable
 
 
-def web_search(query, push_func=None):
-    """Placeholder web search function - implement with your preferred search API"""
-    try:
-        # This is a placeholder - replace with actual web search implementation
-        # You might use requests + BeautifulSoup, or an API like SerpAPI, Bing Search API, etc.
-        print(f"🔍 Web search called for: {query}")
-        
-        # For now, return a mock response
-        return f"Mock search results for '{query}' - implement actual web search here"
-        
-    except Exception as e:
-        print(f"❌ Web search error: {e}")
-        return f"❌ Search failed: {str(e)}"
+
 
 def process_prompt(prompt, app_context):
     print(f"🚀 Processing prompt: {prompt[:50]}...")
