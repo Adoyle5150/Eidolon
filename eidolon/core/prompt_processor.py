@@ -12,8 +12,6 @@ from eidolon.utils.helpers import is_valid_python
 
 from eidolon.memory.chat_storage import save_current_chat
 
-import globals_state as gs
-
 
 WEB_SEARCH_AVAILABLE = True  # or False if you want to disable
 
@@ -32,9 +30,9 @@ def web_search(query, push_func=None):
         print(f"❌ Web search error: {e}")
         return f"❌ Search failed: {str(e)}"
 
-def process_prompt(prompt):
+def process_prompt(prompt, app_context):
     print(f"🚀 Processing prompt: {prompt[:50]}...")
-    print(f"🔧 Global state - chat_name: {gs.current_chat_name}, has_push_func: {gs.push_message_func is not None}, has_gui: {gs.gui is not None}")
+    print(f"🔧 App context - chat_name: {app_context.current_chat_name}, has_push_func: {app_context.push_message_func is not None}, has_gui: {app_context.gui is not None}")
 
     # Local imports to avoid circular dependency
     try:
@@ -42,8 +40,8 @@ def process_prompt(prompt):
         # Handle local commands first
         local_response = commands.handle_commands(prompt)
         if local_response:
-            if gs.push_message_func:
-                gs.push_message_func("assistant", "🤖 " + local_response)
+            if app_context.push_message_func:
+                app_context.push_message_func("assistant", "🤖 " + local_response)
             return
     except ImportError:
         print("⚠️ Commands module not found, skipping command handling")
@@ -51,20 +49,20 @@ def process_prompt(prompt):
     # Set thinking state
     print("⚙️ Setting state: thinking (generating tokens)")
     try:
-        set_assistant_state("thinking", qml_bridge=gs.qml_bridge, root=None)
+        set_assistant_state("thinking", qml_bridge=app_context.qml_bridge, root=None)
     except Exception as e:
         print(f"⚠️ Error setting assistant state: {e}")
     
-    if gs.gui:
+    if app_context.gui:
         try:
-            gs.gui.set_typing(True)
+            app_context.gui.set_typing(True)
         except Exception as e:
             print(f"⚠️ Error setting GUI typing state: {e}")
 
     # Add user prompt to history
-    gs.chat_history.append({"role": "user", "content": prompt})
-    if len(gs.chat_history) > 40:
-        gs.chat_history = gs.chat_history[-40:]
+    app_context.chat_history.append({"role": "user", "content": prompt})
+    if len(app_context.chat_history) > 40:
+        app_context.chat_history = app_context.chat_history[-40:]
 
     # Check if search is needed
     search_keywords = [
@@ -93,7 +91,7 @@ def process_prompt(prompt):
 
     # Get model reply
     try:
-        reply = ask_server(gs.chat_history)
+        reply = ask_server(app_context.chat_history)
     except Exception as e:
         print(f"❌ Error getting server reply: {e}")
         reply = "I apologize, but I encountered an error while processing your request. Please try again."
@@ -104,28 +102,32 @@ def process_prompt(prompt):
     if ("<search>" in reply or needs_search) and WEB_SEARCH_AVAILABLE:
         search_query = _extract_search_query(reply, prompt, needs_search)
         if search_query:
-            search_performed = _perform_web_search(search_query, prompt)
+            search_performed = _perform_web_search(search_query, prompt, app_context)
             if search_performed:
-                reply = _get_search_enhanced_reply(search_query, prompt)
+                reply = _get_search_enhanced_reply(search_query, prompt, app_context)
             else:
-                reply = _handle_search_failure(reply, search_query, prompt)
+                reply = _handle_search_failure(reply, search_query, prompt, app_context)
     elif "<search>" in reply and not WEB_SEARCH_AVAILABLE:
         reply = _handle_search_unavailable(reply)
     elif needs_search and not search_performed and "<search>" not in reply:
-        reply = _handle_fallback_search(reply, prompt)
+        reply = _handle_fallback_search(reply, prompt, app_context)
 
     # Fallback reply
     if not reply or not reply.strip():
         reply = "I apologize, but I wasn't able to generate a proper response. Could you please rephrase your question?"
 
-    
+    # Auto-rename chat if still called 'Untitled'
+    _auto_rename_chat(prompt, app_context)
+
+    # Save chat data
+    _save_chat_data(app_context)
 
     # Send to UI
-    _send_response_to_ui(reply)
+    _send_response_to_ui(reply, app_context)
 
-    if gs.gui:
+    if app_context.gui:
         try:
-            gs.gui.set_typing(False)
+            app_context.gui.set_typing(False)
         except Exception as e:
             print(f"⚠️ Error setting GUI typing state: {e}")
 
@@ -149,32 +151,32 @@ def _extract_search_query(reply, prompt, needs_search):
     return search_query
 
 
-def _perform_web_search(search_query, prompt):
+def _perform_web_search(search_query, prompt, app_context):
     """Perform web search and return success status"""
     print(f"🔍 Searching for: {search_query}")
     
-    if gs.push_message_func:
+    if app_context.push_message_func:
         try:
-            gs.push_message_func("assistant", f"🔎 Searching the web for: \"{search_query}\"...")
+            app_context.push_message_func("assistant", f"🔎 Searching the web for: \"{search_query}\"...")
         except Exception as e:
             print(f"⚠️ Push message error: {e}")
 
     try:
-        search_results = web_search(search_query, gs.push_message_func)
+        search_results = web_search(search_query, app_context.push_message_func)
         
         if search_results and not search_results.startswith("❌") and not search_results.startswith("🔒"):
             print("✅ Web search successful, processing results...")
-            if gs.push_message_func:
+            if app_context.push_message_func:
                 try:
-                    gs.push_message_func("assistant", "🧠 Processing search results and generating response...")
+                    app_context.push_message_func("assistant", "🧠 Processing search results and generating response...")
                 except Exception as e:
                     print(f"⚠️ Push message error: {e}")
             
             # Store search results in chat history
-            if len(gs.chat_history) >= 2 and gs.chat_history[-2].get("role") == "system" and "search" in gs.chat_history[-2].get("content", "").lower():
-                gs.chat_history.pop(-2)
+            if len(app_context.chat_history) >= 2 and app_context.chat_history[-2].get("role") == "system" and "search" in app_context.chat_history[-2].get("content", "").lower():
+                app_context.chat_history.pop(-2)
             
-            gs.chat_history.append({"role": "assistant", "content": f"Here are the web search results for '{search_query}':\n\n{search_results}"})
+            app_context.chat_history.append({"role": "assistant", "content": f"Here are the web search results for '{search_query}':\n\n{search_results}"})
             return True
         else:
             print(f"❌ Web search failed: {search_results}")
@@ -185,13 +187,13 @@ def _perform_web_search(search_query, prompt):
         return False
 
 
-def _get_search_enhanced_reply(search_query, prompt):
+def _get_search_enhanced_reply(search_query, prompt, app_context):
     """Get enhanced reply using search results"""
     search_context = f"""You searched for: "{search_query}"
 
 Here are the current web search results:
 
-{gs.chat_history[-1]['content'].split(":\n\n", 1)[1] if ":\n\n" in gs.chat_history[-1]['content'] else gs.chat_history[-1]['content']}
+{app_context.chat_history[-1]['content'].split(":\n\n", 1)[1] if ":\n\n" in app_context.chat_history[-1]['content'] else app_context.chat_history[-1]['content']}
 
 
 Based on these search results, please provide a comprehensive and accurate answer to the original question: {prompt}
@@ -203,9 +205,9 @@ Important instructions:
 - Synthesize information from multiple sources when possible
 - Focus on the most recent and reliable information"""
 
-    gs.chat_history.append({"role": "user", "content": search_context})
+    app_context.chat_history.append({"role": "user", "content": search_context})
     try:
-        reply = ask_server(gs.chat_history, use_web_search=False)
+        reply = ask_server(app_context.chat_history, use_web_search=False)
         print("✅ Web search completed, got enhanced reply")
         return reply
     except Exception as e:
@@ -213,7 +215,7 @@ Important instructions:
         return f"I found some search results but encountered an error processing them: {str(e)}"
 
 
-def _handle_search_failure(reply, search_query, prompt):
+def _handle_search_failure(reply, search_query, prompt, app_context):
     """Handle failed search attempts"""
     reply = re.sub(r"<search>.*?</search>", "", reply, flags=re.DOTALL).strip()
     
@@ -246,7 +248,7 @@ def _handle_search_unavailable(reply):
     return reply
 
 
-def _handle_fallback_search(reply, prompt):
+def _handle_fallback_search(reply, prompt, app_context):
     """Handle fallback search when query needs search but AI didn't initiate it"""
     print("⚠️ Query needs search but AI didn't search and no search was performed")
     
@@ -258,7 +260,7 @@ def _handle_fallback_search(reply, prompt):
         if search_query:
             print(f"🔍 Forcing search for: {search_query}")
             try:
-                search_results = web_search(search_query, gs.push_message_func)
+                search_results = web_search(search_query, app_context.push_message_func)
                 if search_results and not search_results.startswith("❌"):
                     reply += f"\n\n**📊 Current Information:**\n{search_results}"
             except Exception as e:
@@ -270,9 +272,9 @@ def _handle_fallback_search(reply, prompt):
     return reply
 
 
-def _auto_rename_chat(prompt):
+def _auto_rename_chat(prompt, app_context):
     """Auto-rename chat if still called 'Untitled'"""
-    if gs.current_chat_name == "Untitled" and prompt.strip():
+    if app_context.current_chat_name == "Untitled" and prompt.strip():
         summary = prompt.strip().splitlines()[0][:30]
         new_name = re.sub(r'[\\/:*?"<>|]', '_', summary).strip() or f"Chat {datetime.now().strftime('%m/%d %H:%M')}"
         
@@ -289,53 +291,53 @@ def _auto_rename_chat(prompt):
                 os.rename(old_path, new_path)
                 print(f"✏️ Renamed chat file to: {new_name}.json")
 
-            gs.current_chat_name = new_name
-            if gs.sidebar_backend:
-                gs.sidebar_backend._current_chat_name = new_name
-                if hasattr(gs.sidebar_backend, 'currentChatChanged'):
-                    gs.sidebar_backend.currentChatChanged.emit(new_name)
-                gs.sidebar_backend.add_chat_to_history(new_name)
+            app_context.current_chat_name = new_name
+            if app_context.sidebar_backend:
+                app_context.sidebar_backend._current_chat_name = new_name
+                if hasattr(app_context.sidebar_backend, 'currentChatChanged'):
+                    app_context.sidebar_backend.currentChatChanged.emit(new_name)
+                app_context.sidebar_backend.add_chat_to_history(new_name)
         except Exception as e:
             print(f"⚠️ Error renaming chat: {e}")
 
 
-def _save_chat_data():
+def _save_chat_data(app_context):
     """Save chat history and update sidebar"""
-    if gs.current_chat_name:
+    if app_context.current_chat_name:
         try:
-            save_current_chat(gs.current_chat_name, gs.chat_history)
+            save_current_chat(app_context.current_chat_name, app_context.chat_history)
         except Exception as e:
             print(f"⚠️ Error saving current chat: {e}")
 
-    if gs.sidebar_backend and gs.current_chat_name:
+    if app_context.sidebar_backend and app_context.current_chat_name:
         try:
-            exists = any(chat['name'] == gs.current_chat_name for chat in gs.sidebar_backend._chat_history)
-            if not exists and len(gs.chat_history) <= 2:
-                gs.sidebar_backend.add_chat_to_history(gs.current_chat_name)
-            save_individual_chat(gs.current_chat_name, gs.chat_history)
+            exists = any(chat['name'] == app_context.current_chat_name for chat in app_context.sidebar_backend._chat_history)
+            if not exists and len(app_context.chat_history) <= 2:
+                app_context.sidebar_backend.add_chat_to_history(app_context.current_chat_name)
+            save_individual_chat(app_context.current_chat_name, app_context.chat_history)
         except Exception as e:
             print(f"⚠️ Error updating sidebar: {e}")
 
 
-def _send_response_to_ui(reply):
+def _send_response_to_ui(reply, app_context):
     """Send response to UI"""
     print("📤 Sending message to QML")
-    if gs.push_message_func:
+    if app_context.push_message_func:
         try:
-            gs.push_message_func("assistant", reply)
+            app_context.push_message_func("assistant", reply)
             print("✅ Message sent via push_message_func")
         except Exception as e:
             print(f"⚠️ Push message error: {e}")
             # Fallback to GUI injection
-            if gs.gui:
+            if app_context.gui:
                 try:
-                    gs.gui.inject_response("🤖 " + reply + "\n")
+                    app_context.gui.inject_response("🤖 " + reply + "\n")
                     print("✅ Message sent via GUI fallback")
                 except Exception as gui_e:
                     print(f"⚠️ GUI injection error: {gui_e}")
-    elif gs.gui:
+    elif app_context.gui:
         try:
-            gs.gui.inject_response("🤖 " + reply + "\n")
+            app_context.gui.inject_response("🤖 " + reply + "\n")
             print("✅ Message sent via GUI")
         except Exception as e:
             print(f"⚠️ GUI injection error: {e}")
