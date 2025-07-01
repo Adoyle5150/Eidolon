@@ -31,17 +31,21 @@ class SidebarBackend(QObject):
     chatLoadRequested = pyqtSignal(str)
     chatMessageAdded = pyqtSignal(str, dict)
 
-    def __init__(self):
+    def __init__(self, app_context):
         super().__init__()
+        self.app_context = app_context  # ✅ store app_context for replacing gs
+
         self._sidebar_visible = True
         self._chat_history = []
         self._filtered_chat_history = []
         self._current_chat_name = ""
         self._search_filter = ""
         self.main_backend = None
+
         # Load chat history immediately and scan for existing chats
         self.load_chat_history()
         self.scan_existing_chats()
+
 
     @pyqtProperty(str)
     def currentChatName(self):

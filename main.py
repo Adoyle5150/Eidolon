@@ -51,9 +51,10 @@ fmt.setAlphaBufferSize(8)
 QSurfaceFormat.setDefaultFormat(fmt)
 
 # =====================================================
-# ✅ Import globals_state EARLY
+# ✅ Import AppContext instead of globals_state
 # =====================================================
-import globals_state as gs
+from eidolon.core.app_context import AppContext
+app_context = AppContext()
 
 # =====================================================
 # ✅ Now safe to import heavy Eidolon modules
@@ -106,14 +107,14 @@ WEB_SEARCH_SYSTEM_PROMPT = (
 # ✅ Event handlers
 # =====================================================
 def on_user_prompt(prompt):
-    threading.Thread(target=process_prompt, args=(prompt,), daemon=True).start()
+    threading.Thread(target=process_prompt, args=(prompt, app_context), daemon=True).start()
 
 @pyqtSlot()
 def on_typing_complete():
     print("✅ Animation completed, setting state: ready")
     set_assistant_state("ready")
-    if gs.gui:
-        gs.gui.set_typing(False)
+    if app_context.gui:
+        app_context.gui.set_typing(False)
 
 def main():
     ensure_core_memory()
@@ -122,18 +123,19 @@ def main():
     # ... existing clipboard setup ...
 
     # ✅ Create sidebar backend before QML engine
-    gs.sidebar_backend = SidebarBackend()
+    sidebar_backend = SidebarBackend(app_context)
+    app_context.sidebar_backend = sidebar_backend
 
     # ✅ Register with QML BEFORE loading QML file
     qmlRegisterType(SidebarBackend, "Eidolon", 1, 0, "SidebarBackend")
 
     # Bridge + QML engine
     engine = QQmlApplicationEngine()
-    bridge = setup_qml_bridge(engine)
-    gs.qml_bridge = bridge
+    bridge = setup_qml_bridge(engine, app_context)
+    app_context.qml_bridge = bridge
     
     # ✅ Context properties - SET BEFORE LOADING QML
-    engine.rootContext().setContextProperty("sidebarBackend", gs.sidebar_backend)
+    engine.rootContext().setContextProperty("sidebarBackend", app_context.sidebar_backend)
     engine.rootContext().setContextProperty("typingCompleteHandler", on_typing_complete)
 
     if clipboard:
@@ -143,20 +145,20 @@ def main():
     def on_new_chat():
         print("🆕 New chat started from sidebar")
         new_name = "Untitled"
-        gs.sidebar_backend._current_chat_name = new_name
-        gs.current_chat_name = new_name
-        gs.chat_history = []
-        if gs.root:
-            QMetaObject.invokeMethod(gs.root, "clearChatModel")
-        set_assistant_state("ready", qml_bridge=gs.qml_bridge, root=gs.root)
-        print(f"💬 Starting new conversation: {gs.current_chat_name}")
+        app_context.sidebar_backend._current_chat_name = new_name
+        app_context.current_chat_name = new_name
+        app_context.chat_history = []
+        if app_context.root:
+            QMetaObject.invokeMethod(app_context.root, "clearChatModel")
+        set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
+        print(f"💬 Starting new conversation: {app_context.current_chat_name}")
 
     def on_chat_load(chat_name):
         print(f"📁 Loading chat from sidebar: {chat_name}")
-        if gs.current_chat_name and gs.chat_history:
-            save_current_chat(gs.current_chat_name, gs.chat_history)
-        gs.sidebar_backend._current_chat_name = chat_name
-        gs.current_chat_name = chat_name
+        if app_context.current_chat_name and app_context.chat_history:
+            save_current_chat(app_context.current_chat_name, app_context.chat_history)
+        app_context.sidebar_backend._current_chat_name = chat_name
+        app_context.current_chat_name = chat_name
         try:
             safe_name = chat_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
             chat_file = f"chats/{safe_name}.json"
@@ -164,37 +166,37 @@ def main():
                 with open(chat_file, "r", encoding="utf-8") as f:
                     loaded_data = json.load(f)
                     if isinstance(loaded_data, dict):
-                        gs.chat_history = loaded_data.get("messages", [])
+                        app_context.chat_history = loaded_data.get("messages", [])
                     elif isinstance(loaded_data, list):
-                        gs.chat_history = loaded_data
+                        app_context.chat_history = loaded_data
                     else:
                         print(f"❌ Unknown chat file format in {chat_file}, using empty history.")
-                        gs.chat_history = []
+                        app_context.chat_history = []
 
-                    print(f"✅ Loaded {len(gs.chat_history)} messages for: {chat_name}")
-                    if gs.root:
-                        QMetaObject.invokeMethod(gs.root, "clearChatModel")
-                        for msg in gs.chat_history:
+                    print(f"✅ Loaded {len(app_context.chat_history)} messages for: {chat_name}")
+                    if app_context.root:
+                        QMetaObject.invokeMethod(app_context.root, "clearChatModel")
+                        for msg in app_context.chat_history:
                             QMetaObject.invokeMethod(
-                                gs.root, "appendMessage",
+                                app_context.root, "appendMessage",
                                 Q_ARG(QVariant, msg.get("role", "assistant")),
                                 Q_ARG(QVariant, msg.get("content", ""))
                             )
 
             else:
-                gs.chat_history = []
-                if gs.root:
-                    QMetaObject.invokeMethod(gs.root, "clearChatModel")
+                app_context.chat_history = []
+                if app_context.root:
+                    QMetaObject.invokeMethod(app_context.root, "clearChatModel")
                 print(f"🆕 Starting fresh chat: {chat_name}")
         except Exception as e:
             print(f"❌ Error loading chat {chat_name}: {e}")
-            gs.chat_history = []
-            if gs.root:
-                QMetaObject.invokeMethod(gs.root, "clearChatModel")
-        set_assistant_state("ready", qml_bridge=gs.qml_bridge, root=gs.root)
+            app_context.chat_history = []
+            if app_context.root:
+                QMetaObject.invokeMethod(app_context.root, "clearChatModel")
+        set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
 
-    gs.sidebar_backend.newChatRequested.connect(on_new_chat)
-    gs.sidebar_backend.chatLoadRequested.connect(on_chat_load)
+    app_context.sidebar_backend.newChatRequested.connect(on_new_chat)
+    app_context.sidebar_backend.chatLoadRequested.connect(on_chat_load)
 
     # ✅ Load QML safely
     try:
@@ -207,50 +209,50 @@ def main():
         print("❌ Failed to load QML file (no root objects)")
         return -1
 
-    gs.root = engine.rootObjects()[0]
-    gs.root.setProperty("assistantState", "ready")
+    app_context.root = engine.rootObjects()[0]
+    app_context.root.setProperty("assistantState", "ready")
 
    
 
     def push_message(role, content):
-        if gs.root:
+        if app_context.root:
             if role == "assistant":
-                if gs.animated_typing_enabled:
+                if app_context.animated_typing_enabled:
                     print("✍️ Assistant typing with animation")
-                    set_assistant_state("typing", qml_bridge=gs.qml_bridge, root=gs.root)
+                    set_assistant_state("typing", qml_bridge=app_context.qml_bridge, root=app_context.root)
                     QMetaObject.invokeMethod(
-                        gs.root, "appendAnimatedMessage",
+                        app_context.root, "appendAnimatedMessage",
                         Q_ARG(QVariant, role),
                         Q_ARG(QVariant, content),
                         Q_ARG(QVariant, 2)
                     )
                 else:
                     QMetaObject.invokeMethod(
-                        gs.root, "appendMessage",
+                        app_context.root, "appendMessage",
                         Q_ARG(QVariant, role),
                         Q_ARG(QVariant, content)
                     )
                     print("✅ Assistant message displayed instantly")
-                    set_assistant_state("ready", qml_bridge=gs.qml_bridge, root=gs.root)
+                    set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
 
                 # ✅ Save assistant message to chat history
-                if gs.current_chat_name:
-                    if not gs.chat_history:
-                        gs.chat_history = []
-                    gs.chat_history.append({"role": role, "content": content})
+                if app_context.current_chat_name:
+                    if not app_context.chat_history:
+                        app_context.chat_history = []
+                    app_context.chat_history.append({"role": role, "content": content})
 
                 # ✅ Save and refresh sidebar
-                if gs.current_chat_name and gs.chat_history:
+                if app_context.current_chat_name and app_context.chat_history:
                     from eidolon.memory.chat_storage import save_current_chat
-                    actual_name = save_current_chat(gs.current_chat_name, gs.chat_history)
+                    actual_name = save_current_chat(app_context.current_chat_name, app_context.chat_history)
 
-                    if actual_name != gs.current_chat_name:
-                        gs.current_chat_name = actual_name
-                        gs.sidebar_backend._current_chat_name = actual_name
-                        gs.sidebar_backend.currentChatChanged.emit(actual_name)
+                    if actual_name != app_context.current_chat_name:
+                        app_context.current_chat_name = actual_name
+                        app_context.sidebar_backend._current_chat_name = actual_name
+                        app_context.sidebar_backend.currentChatChanged.emit(actual_name)
 
-                    if gs.sidebar_backend:
-                        gs.sidebar_backend.add_chat_to_history(actual_name)
+                    if app_context.sidebar_backend:
+                        app_context.sidebar_backend.add_chat_to_history(actual_name)
 
             else:
                 # ❌ REMOVE user/system message UI append here to prevent duplicates
@@ -259,39 +261,46 @@ def main():
 
 
 
-    gs.push_message_func = push_message
+    app_context.push_message_func = push_message
     bridge.messageReceived.connect(push_message)
 
     # Launch LLaMA
     threading.Thread(target=threaded_llama_start, daemon=True).start()
 
-    gs.gui = bridge
+    app_context.gui = bridge
 
     import atexit
     def save_on_exit():
-        if gs.current_chat_name and gs.chat_history:
-            print(f"💾 Auto-saving chat on exit: {gs.current_chat_name}")
-            save_current_chat(gs.current_chat_name, gs.chat_history)
+        if app_context.current_chat_name and app_context.chat_history:
+            print(f"💾 Auto-saving chat on exit: {app_context.current_chat_name}")
+            save_current_chat(app_context.current_chat_name, app_context.chat_history)
     atexit.register(save_on_exit)
 
     def ensure_chat_loaded():
-        if not gs.current_chat_name:
-            gs.current_chat_name = "Untitled"
-            gs.chat_history = []
+        if not app_context.current_chat_name:
+            app_context.current_chat_name = "Untitled"
+            app_context.chat_history = []
             print("🆕 Default chat session started: Untitled")
-            set_assistant_state("ready", qml_bridge=gs.qml_bridge, root=gs.root)
+            set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
 
     if vision_available:
         start_all_background_services()
 
     QTimer.singleShot(100, ensure_chat_loaded)
 
-    # ✅ Set all global state references (consolidated)
-    gs.set_sidebar_backend(gs.sidebar_backend)
-    gs.set_qml_bridge(gs.qml_bridge)
-    gs.set_gui_instance(gs.gui)
-    gs.set_root_instance(gs.root)
-    gs.set_push_message_func(push_message)
+    # ✅ Store config reference in app_context if needed
+    app_context.config = config
+
+    # ✅ Set up web search function if available
+    if WEB_SEARCH_AVAILABLE:
+        app_context.web_search_func = web_search
+
+    # ✅ Set up vision service if available
+    if vision_available:
+        try:
+            app_context.vision_service = EidolonVision()
+        except Exception as e:
+            print(f"⚠️ Could not initialize vision service: {e}")
 
     return app.exec()
 

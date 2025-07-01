@@ -4,7 +4,6 @@ from PyQt6.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer, pyqtProperty
 from PyQt6.QtGui import QGuiApplication
 import threading
 
-import globals_state as gs
 from eidolon.core.prompt_processor import process_prompt
 
 class EidolonQMLBridge(QObject):
@@ -16,8 +15,9 @@ class EidolonQMLBridge(QObject):
 
     _continue_function = None
 
-    def __init__(self, on_prompt_callback):
+    def __init__(self, app_context, on_prompt_callback):
         super().__init__()
+        self.app_context = app_context
         self.on_prompt_callback = on_prompt_callback
 
     @pyqtSlot(str)
@@ -66,29 +66,27 @@ class EidolonQMLBridge(QObject):
 
     @pyqtProperty(bool, notify=animatedTypingEnabledChanged)
     def animatedTypingEnabled(self):
-        from globals_state import animated_typing_enabled
-        return animated_typing_enabled
+        return self.app_context.animated_typing_enabled
 
     @animatedTypingEnabled.setter
     def animatedTypingEnabled(self, value):
-        from globals_state import animated_typing_enabled
-        if value != animated_typing_enabled:
-            animated_typing_enabled = value
+        if value != self.app_context.animated_typing_enabled:
+            self.app_context.animated_typing_enabled = value
             self.animatedTypingEnabledChanged.emit()
 
 # ✅ Wiring function to simplify main.py
-def setup_qml_bridge(engine):
+def setup_qml_bridge(engine, app_context):
     def on_user_prompt(prompt):
-        threading.Thread(target=process_prompt, args=(prompt,), daemon=True).start()
+        threading.Thread(target=process_prompt, args=(prompt, app_context), daemon=True).start()
 
-    qml_bridge = EidolonQMLBridge(on_prompt_callback=on_user_prompt)
+    qml_bridge = EidolonQMLBridge(app_context, on_prompt_callback=on_user_prompt)
 
     engine.rootContext().setContextProperty("backend", qml_bridge)
     engine.rootContext().setContextProperty("backendReady", True)
 
-    gs.set_qml_bridge(qml_bridge)
-    gs.set_gui_instance(qml_bridge)
-    gs.set_push_message_func(lambda role, content: qml_bridge.messageReceived.emit(role, content))
+    # Register push_message_func directly
+    app_context.push_message_func = lambda role, content: qml_bridge.messageReceived.emit(role, content)
+    app_context.gui = qml_bridge
 
     print("✅ QML Bridge fully initialized and injected")
     return qml_bridge
