@@ -25,5 +25,32 @@
     "success_rate": 0.75,
     "results_length": 970,
     "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-30T21:42:20.282140",
+    "query": "top upcoming TV series 2025 most anticipated TV shows 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1321,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-30T21:52:51.354708",
+    "query": "the president of the united states today as of 2025 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1819,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-06-30T22:07:10.220700",
+    "query": "weather in Paris today",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 923,
+    "intelligent_mode": true
   }
 ]
