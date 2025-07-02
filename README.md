@@ -1,86 +1,145 @@
-Eidolon - Personal AI Assistant
-Eidolon is a sophisticated, locally-run AI assistant that combines multiple advanced capabilities into a single, integrated desktop application. Built with PyQt6 and QML for a modern interface, it runs entirely on your local machine with no cloud dependencies.
-�� Core Features
-✅ Local AI Processing
-Local LLM Integration: Runs DeepSeek-R1-Distill-Llama-8B model locally via llama.cpp
-No Cloud Dependencies: Complete privacy with all processing on your device
-Customizable Identity: Configurable assistant personality and behavior rules
-Real-time Chat Interface: Modern QML-based GUI with animated typing effects
-✅ Advanced Memory System
-Vector Memory (FAISS): Semantic search using sentence transformers for context-aware responses
-Core Memory: Persistent identity and behavior rules stored in JSON
-Chat History: Automatic conversation saving and retrieval with search functionality
-Vision Memory: Context-aware screen activity tracking and recall
-✅ Intelligent Web Search
-Multi-Engine Search: DuckDuckGo and Bing fallback support
-Content Extraction: Intelligent parsing of web pages with readability algorithms
-Smart Summarization: AI-powered content analysis and relevance scoring
-Caching System: Performance optimization with intelligent content caching
-Progress Tracking: Real-time search progress updates in the interface
-✅ Computer Vision System
-Screen Capture: Automatic screenshot capture at configurable intervals
-OCR Integration: Tesseract-based text extraction from screen content
-Context Analysis: Intelligent interpretation of active applications and windows
-Smart Responses: Context-aware suggestions based on current screen activity
-Vision Memory: Persistent storage of screen contexts for pattern recognition
-✅ Local Automation Commands
-System Control: Mouse movement, clicking, and keyboard automation
-Text-to-Speech: Voice output using pyttsx3
-Web Browser Control: Direct URL opening and navigation
-File System Access: Directory listing and file operations
-System Information: Time, date, IP address queries
-✅ Modern User Interface
-Frameless Design: Clean, modern window with custom styling
-Sidebar Navigation: Collapsible chat history and management panel
-Code Highlighting: Syntax highlighting for code blocks in responses
-Clipboard Integration: One-click copying of assistant responses
-Responsive Layout: Adaptive design that works on different screen sizes
-🔧 Technical Architecture
-Backend Components
-PyQt6/QML Bridge: Seamless Python-QML communication
-Threading System: Non-blocking UI with background processing
-State Management: Real-time assistant state tracking (ready/thinking/typing)
-Error Handling: Robust error recovery and graceful degradation
-Data Management
-Organized Storage: All data files stored in dedicated data/ folder
-JSON Persistence: Human-readable configuration and memory storage
-Automatic Backups: Chat history and memory preservation
-Version Control: Git-friendly data organization
-Performance Features
-GPU Acceleration: CUDA support for LLM inference
-Memory Optimization: Efficient vector storage with FAISS
-Caching Layers: Web content and search result caching
-Background Processing: Non-blocking operations for smooth UX
-🎯 Use Cases
-Development & Coding
-Code review and debugging assistance
-Programming language explanations
-Project structure analysis
-Real-time error detection and suggestions
-Research & Information
-Live web search with intelligent summarization
-Multi-source information synthesis
-Current events and real-time data
-Academic research assistance
-Productivity & Automation
-Screen activity monitoring and optimization
-Automated system tasks
-Context-aware suggestions
-Workflow pattern recognition
-Personal Assistant
-Natural conversation with memory retention
-Local file and system management
-Voice interaction capabilities
-Personalized behavior adaptation
-🛠️ System Requirements
-OS: Windows 10/11 (primary), Linux/macOS (planned)
-RAM: 8GB minimum, 16GB recommended
-Storage: 10GB for models and data
-GPU: Optional CUDA support for faster inference
-Dependencies: Python 3.8+, PyQt6, llama.cpp, Tesseract OCR
-🔮 Future Roadmap
-Tier 4-5 Advanced Features (Planned)
-Vision-Language Models: Advanced screen understanding with VLMs
-UI Layout Recognition: Donut/LayoutLM for interface understanding
-Action Automation: Screen interaction and automation capabilities
-Learning Loops: Pattern recognition and predictive assistance
+# Eidolon - Personal AI Assistant
+
+⚡ **Local, Private, Powerful Desktop AI**
+
+Eidolon is a sophisticated, locally-run AI assistant that combines advanced capabilities into a single, integrated desktop application. Built with **PyQt6** and **QML** for a modern interface, it runs **entirely on your machine with no cloud dependencies**, ensuring privacy and full local control.
+
+---
+
+## ✨ Core Features
+
+✅ **Local AI Processing**
+
+* **Local LLM Integration:** Runs DeepSeek-R1-Distill-Llama-8B via llama.cpp
+* **No Cloud Dependencies:** Full privacy with all processing on your device
+* **Customizable Identity:** Configurable assistant personality and behavior
+* **Real-time Chat Interface:** Modern QML GUI with animated typing effects
+
+✅ **Advanced Memory System**
+
+* **Vector Memory (FAISS):** Semantic search with sentence transformers
+* **Core Memory:** Persistent identity and behavior rules (JSON)
+* **Chat History:** Auto-saving with searchable retrieval
+* **Vision Memory:** Screen activity context tracking and recall
+
+✅ **Intelligent Web Search**
+
+* **Multi-Engine Search:** DuckDuckGo & Bing fallback
+* **Content Extraction:** Readability parsing for clean data
+* **Smart Summarization:** AI-powered content relevance scoring
+* **Caching:** Optimized performance with intelligent caching
+* **Progress Tracking:** Real-time search status in the UI
+
+✅ **Computer Vision System**
+
+* **Screen Capture:** Auto screenshots at intervals
+* **OCR Integration:** Tesseract-based screen text extraction
+* **Context Analysis:** Active application/window interpretation
+* **Smart Responses:** Context-based suggestions
+* **Vision Memory:** Persistent pattern recognition
+
+✅ **Local Automation Commands**
+
+* **System Control:** Mouse/keyboard automation
+* **Text-to-Speech:** Voice output using pyttsx3
+* **Web Browser Control:** URL opening and navigation
+* **File System Access:** Listing and file operations
+* **System Info:** Time, date, IP retrieval
+
+✅ **Modern User Interface**
+
+* **Frameless Design:** Clean, adaptive UI
+* **Sidebar Navigation:** Collapsible chat history panel
+* **Code Highlighting:** Syntax highlighting in replies
+* **Clipboard Integration:** One-click response copying
+* **Responsive Layout:** Adapts to various screen sizes
+
+---
+
+## 🔧 Technical Architecture
+
+**Backend:**
+
+* PyQt6/QML bridge for seamless Python-QML communication
+* Threaded processing for non-blocking UI
+* Real-time assistant state tracking (ready/thinking/typing)
+* Robust error handling and graceful fallback
+
+**Data Management:**
+
+* All data stored in a dedicated `data/` folder
+* Human-readable JSON configuration and memory storage
+* Automatic backups for chat history and memory
+* Git-friendly structure for clean version control
+
+**Performance:**
+
+* GPU acceleration via CUDA for LLM inference
+* FAISS-based memory optimization
+* Caching layers for web and search data
+* Background processing for smooth user experience
+
+---
+
+## 🎯 Use Cases
+
+✅ **Development & Coding**: Code review, debugging, language explanation, structure analysis, real-time error checks
+
+✅ **Research & Information**: Live web search with summarization, current events, academic research, multi-source synthesis
+
+✅ **Productivity & Automation**: Screen monitoring, context suggestions, workflow optimization, automated tasks
+
+✅ **Personal Assistant**: Natural conversations, local file/system management, voice interactions, personalized behavior
+
+---
+
+## 🛠️ System Requirements
+
+* OS: Windows 10/11 (Linux/macOS planned)
+* RAM: 8GB minimum (16GB recommended)
+* Storage: 10GB for models/data
+* GPU: Optional CUDA support for faster inference
+* Dependencies: Python 3.8+, PyQt6, llama.cpp, Tesseract OCR
+
+---
+
+## 🔮 Future Roadmap
+
+* Tier 4-5 advanced features
+* Vision-language models for advanced screen understanding
+* UI layout recognition with Donut/LayoutLM
+* Screen interaction and action automation
+* Predictive learning loops for advanced assistance
+
+---
+
+## 📸 Screenshots
+
+*(Add clean screenshots or GIFs of the Eidolon interface in action here)*
+
+---
+
+## 📥 Installation
+
+```bash
+git clone https://github.com/YourUser/Eidolon.git
+cd Eidolon
+pip install -r requirements.txt
+python main.py
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to fork and submit pull requests.
+
+---
+
+## 📜 License
+
+MIT License
+
+---
+
+This README provides a **clean, professional structure** for your GitHub repo, making it clear, skimmable, and ready for presentation.
