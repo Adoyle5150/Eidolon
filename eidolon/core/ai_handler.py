@@ -2,9 +2,11 @@
 
 import requests
 import re
+import threading
 
 from eidolon.memory.core_memory import get_core_memory
 from eidolon.utils.helpers import is_valid_python
+from eidolon.memory import vector_memory_faiss as vector_memory
 
 # Local constants used only by ask_server
 SERVER_URL = "http://localhost:11434"
@@ -38,18 +40,21 @@ def ask_server(messages, use_web_search=True):
         modified = messages[:-1]
         latest = messages[-1]
 
-        # Inject retrieved memories if vector retrieval is ready
-        try:
-            from eidolon.memory.vector_memory import retrieve_relevant_memories
-            prompt_text = latest["content"]
-            memory_block = retrieve_relevant_memories(prompt_text, top_k=5)
-            if memory_block:
-                latest["content"] = f"{memory_block}\n{latest['content']}".strip()
-                print("✅ Injected retrieved vector memories into prompt.")
-            else:
-                print("ℹ️ No relevant memories retrieved.")
-        except Exception as e:
-            print(f"⚠️ Vector memory retrieval failed: {e}")
+        # Store "remember" statements in FAISS without blocking
+        if latest["content"].lower().startswith("remember"):
+            threading.Thread(
+                target=vector_memory.store_memory,
+                args=(latest["content"],),
+                daemon=True
+            ).start()
+
+        # Retrieve relevant memories and prepend to prompt
+        memory_block = vector_memory.retrieve_relevant_memories(latest["content"], top_k=5)
+        if memory_block:
+            latest["content"] = f"{memory_block}\n{latest['content']}".strip()
+            print("✅ Injected FAISS vector memories into prompt.")
+        else:
+            print("ℹ️ No relevant memories retrieved.")
 
         full_messages = [{"role": "system", "content": identity}] + modified + [latest]
 

@@ -12,7 +12,8 @@ from eidolon.utils.helpers import is_valid_python
 from web.searcher import web_search
 
 
-from eidolon.memory.chat_storage import save_current_chat
+from eidolon.memory.chat_storage import save_current_chat, save_individual_chat
+
 
 
 WEB_SEARCH_AVAILABLE = True  # or False if you want to disable

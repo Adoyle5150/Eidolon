@@ -52,5 +52,23 @@
     "success_rate": 1.0,
     "results_length": 923,
     "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T15:31:29.230662",
+    "query": "What do you know about my favorite color 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 434,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T16:22:21.889850",
+    "query": "what do you know about foxes 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 958,
+    "intelligent_mode": true
   }
 ]
