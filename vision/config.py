@@ -12,7 +12,7 @@ class VisionConfig:
 
     # === Memory Settings ===
     VISION_MEMORY_ENABLED = True
-    MEMORY_FILE_PATH = "vision_memory.json"
+    MEMORY_FILE_PATH = "data/vision_memory.json"
 
     # === Logging ===
     DEBUG_MODE = True

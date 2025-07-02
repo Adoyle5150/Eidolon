@@ -47,7 +47,7 @@ coverage.xml
 
 # === Eidolon runtime data ===
 # These are generated or ephemeral, not needed in git
-vision_memory.json
+data/vision_memory.json
 chats/*.json
 web_cache/
 screenshots/

@@ -9,7 +9,7 @@ except ImportError:
 
 def get_core_memory():
     """
-    Retrieves identity and rules from core_memory.json for prompt injection.
+    Retrieves identity and rules from data/core_memory.json for prompt injection.
     Returns a formatted string for system prompts.
     """
     try:
@@ -28,7 +28,7 @@ def get_core_memory():
 
 def ensure_core_memory():
     """
-    Ensures core_memory.json exists with default identity and rules.
+    Ensures data/core_memory.json exists with default identity and rules.
     """
     if not os.path.exists(CORE_MEMORY_FILE):
         default = {
@@ -37,4 +37,4 @@ def ensure_core_memory():
         }
         with open(CORE_MEMORY_FILE, "w", encoding="utf-8") as f:
             json.dump(default, f, indent=2, ensure_ascii=False)
-        print("🧠 Created default core_memory.json")
+        print("🧠 Created default data/core_memory.json")

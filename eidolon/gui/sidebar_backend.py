@@ -292,20 +292,20 @@ class SidebarBackend(QObject):
 
 
     def load_chat_history(self):
-        """Load chat history from chat_history.json"""
+        """Load chat history from data/chat_history.json"""
         try:
-            if os.path.exists("chat_history.json"):
-                with open("chat_history.json", "r", encoding="utf-8") as f:
+            if os.path.exists("data/chat_history.json"):
+                with open("data/chat_history.json", "r", encoding="utf-8") as f:
                     content = f.read().strip()
                     if not content:
-                        print("⚠️ chat_history.json was empty, reinitializing.")
+                        print("⚠️ data/chat_history.json was empty, reinitializing.")
                         self._chat_history = []
                         self.save_chat_history()
                     else:
                         self._chat_history = json.loads(content)
                         print(f"[SidebarBackend] Loaded {len(self._chat_history)} chats from history")
             else:
-                print("[SidebarBackend] No chat_history.json found, starting fresh")
+                print("[SidebarBackend] No data/chat_history.json found, starting fresh")
                 self._chat_history = []
                 self.save_chat_history()
         except Exception as e:
@@ -313,9 +313,9 @@ class SidebarBackend(QObject):
             self._chat_history = []
 
     def save_chat_history(self):
-        """Save chat history to chat_history.json"""
+        """Save chat history to data/chat_history.json"""
         try:
-            with open("chat_history.json", "w", encoding="utf-8") as f:
+            with open("data/chat_history.json", "w", encoding="utf-8") as f:
                 json.dump(self._chat_history, f, indent=2, ensure_ascii=False)
             print(f"[SidebarBackend] Saved chat history with {len(self._chat_history)} entries")
         except Exception as e:

@@ -7,7 +7,7 @@ LLAMA_SERVER = "E:/Eidolon/llama.cpp/build/bin/llama-server.exe"
 SERVER_URL = "http://localhost:11434"
 
 # Memory file
-CORE_MEMORY_FILE = "core_memory.json"
+CORE_MEMORY_FILE = "data/core_memory.json"
 
 # Web search system prompt
 WEB_SEARCH_SYSTEM_PROMPT = (

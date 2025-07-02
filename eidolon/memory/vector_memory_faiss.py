@@ -11,8 +11,8 @@ import threading
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # File paths for persistence
-index_file = "eidolon_vectors.index"
-meta_file = "eidolon_vectors_meta.json"
+index_file = "data/eidolon_vectors.index"
+meta_file = "data/eidolon_vectors_meta.json"
 
 # Load or initialize FAISS index
 dimension = 384  # all-MiniLM-L6-v2 output dimension

@@ -554,7 +554,7 @@ class EnhancedWebSearcher:
                 'intelligent_mode': self.config.get('smart_summarization', True)
             }
             
-            log_path = "intelligent_search_log.json"
+            log_path = "data/intelligent_search_log.json"
             log_data = []
             
             if os.path.exists(log_path):
@@ -575,7 +575,7 @@ class EnhancedWebSearcher:
     
     def get_search_stats(self) -> Dict:
         """Get search performance statistics"""
-        log_path = "intelligent_search_log.json"
+        log_path = "data/intelligent_search_log.json"
         if not os.path.exists(log_path):
             return {"total_searches": 0, "average_success_rate": 0.0}
         

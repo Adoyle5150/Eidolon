@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 import hashlib
 
-MEMORY_FILE = "vision_memory.json"
+MEMORY_FILE = "data/vision_memory.json"
 
 class EidolonVisionMemory:
     def __init__(self):
