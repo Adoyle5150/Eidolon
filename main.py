@@ -38,7 +38,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Vision
 # =====================================================
 from PyQt6.QtCore import (
     Qt, QTimer, pyqtSignal, QUrl, QObject, QMetaObject, 
-    Q_ARG, QVariant, pyqtProperty, pyqtSlot
+    Q_ARG, QVariant, pyqtSlot
 )
 from PyQt6.QtGui import QGuiApplication, QSurfaceFormat
 from PyQt6.QtQml import QQmlApplicationEngine, qmlRegisterType
@@ -88,13 +88,15 @@ except ImportError as e:
 # ✅ Vision system imports
 # =====================================================
 try:
-    from eidolon_vision import EidolonVision
-    from startup import start_all_background_services
+    from vision.eidolon_vision import EidolonVision
+    from vision.startup import start_all_background_services
     vision_available = True
     print("✅ Eidolon Vision module loaded")
 except Exception as e:
     vision_available = False
     print(f"⚠️ Eidolon Vision not available: {e}")
+    start_all_background_services = None
+    EidolonVision = None
 
 # =====================================================
 # ✅ Web search system prompt (keep here for clarity)
@@ -123,7 +125,11 @@ def main():
 
     # ✅ Correct clipboard setup
     qt_clipboard = app.clipboard()
-    clipboard = ClipboardWrapper(qt_clipboard)
+    if qt_clipboard is None:
+        print("⚠️ Warning: QClipboard is None, clipboard functionality may not work")
+        clipboard = None
+    else:
+        clipboard = ClipboardWrapper(qt_clipboard)
 
     # ✅ Create sidebar backend before QML engine
     sidebar_backend = SidebarBackend(app_context)
@@ -138,15 +144,18 @@ def main():
     app_context.qml_bridge = bridge
 
     # ✅ Context properties - SET BEFORE LOADING QML
-    engine.rootContext().setContextProperty("sidebarBackend", app_context.sidebar_backend)
-    engine.rootContext().setContextProperty("typingCompleteHandler", on_typing_complete)
-    engine.rootContext().setContextProperty("clipboard", clipboard)
+    root_context = engine.rootContext()
+    if root_context is not None:
+        root_context.setContextProperty("sidebarBackend", app_context.sidebar_backend)
+        root_context.setContextProperty("typingCompleteHandler", on_typing_complete)
+        root_context.setContextProperty("clipboard", clipboard)
 
     # ✅ Sidebar signals - CONNECT BEFORE LOADING QML
     def on_new_chat():
         print("🆕 New chat started from sidebar")
         new_name = "Untitled"
-        app_context.sidebar_backend._current_chat_name = new_name
+        if app_context.sidebar_backend is not None:
+            app_context.sidebar_backend._current_chat_name = new_name
         app_context.current_chat_name = new_name
         app_context.chat_history = []
         if app_context.root:
@@ -158,7 +167,8 @@ def main():
         print(f"📁 Loading chat from sidebar: {chat_name}")
         if app_context.current_chat_name and app_context.chat_history:
             save_current_chat(app_context.current_chat_name, app_context.chat_history)
-        app_context.sidebar_backend._current_chat_name = chat_name
+        if app_context.sidebar_backend is not None:
+            app_context.sidebar_backend._current_chat_name = chat_name
         app_context.current_chat_name = chat_name
         try:
             safe_name = chat_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
@@ -195,8 +205,9 @@ def main():
                 QMetaObject.invokeMethod(app_context.root, "clearChatModel")
         set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
 
-    app_context.sidebar_backend.newChatRequested.connect(on_new_chat)
-    app_context.sidebar_backend.chatLoadRequested.connect(on_chat_load)
+    if app_context.sidebar_backend is not None:
+        app_context.sidebar_backend.newChatRequested.connect(on_new_chat)
+        app_context.sidebar_backend.chatLoadRequested.connect(on_chat_load)
 
     # ✅ Load QML safely
     try:
@@ -238,11 +249,13 @@ def main():
                     actual_name = save_current_chat(app_context.current_chat_name, app_context.chat_history)
                     if actual_name != app_context.current_chat_name:
                         app_context.current_chat_name = actual_name
-                        app_context.sidebar_backend._current_chat_name = actual_name
-                        app_context.sidebar_backend.currentChatChanged.emit(actual_name)
+                        if app_context.sidebar_backend is not None:
+                            app_context.sidebar_backend._current_chat_name = actual_name
+                            app_context.sidebar_backend.currentChatChanged.emit(actual_name)
 
                     # ✅ Only reorder to top when sending/receiving a message
-                    app_context.sidebar_backend.add_chat_to_history(actual_name, force_top=True)
+                    if app_context.sidebar_backend is not None:
+                        app_context.sidebar_backend.add_chat_to_history(actual_name, force_top=True)
 
     app_context.push_message_func = push_message
     bridge.messageReceived.connect(push_message)
@@ -266,7 +279,7 @@ def main():
             print("🆕 Default chat session started: Untitled")
             set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
 
-    if vision_available:
+    if vision_available and start_all_background_services is not None:
         start_all_background_services()
 
     QTimer.singleShot(100, ensure_chat_loaded)
@@ -276,7 +289,7 @@ def main():
     if WEB_SEARCH_AVAILABLE:
         app_context.web_search_func = web_search
 
-    if vision_available:
+    if vision_available and EidolonVision is not None:
         try:
             app_context.vision_service = EidolonVision()
         except Exception as e:

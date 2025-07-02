@@ -30,6 +30,7 @@ try:
     READABILITY_AVAILABLE = True
 except ImportError:
     READABILITY_AVAILABLE = False
+    Document = None
 
 # DuckDuckGo search
 try:
@@ -37,6 +38,7 @@ try:
     DUCKDUCKGO_AVAILABLE = True
 except ImportError:
     DUCKDUCKGO_AVAILABLE = False
+    DDGS = None
 
 # Selenium fallback
 try:
@@ -50,6 +52,14 @@ try:
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
+    webdriver = None
+    Options = None
+    Service = None
+    By = None
+    WebDriverWait = None
+    EC = None
+    TimeoutException = None
+    WebDriverException = None
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -180,7 +190,7 @@ class EnhancedWebSearcher:
             if 'text/html' not in content_type:
                 return None, f"Non-HTML content type: {content_type}", None
             
-            if READABILITY_AVAILABLE:
+            if READABILITY_AVAILABLE and Document is not None:
                 doc = Document(response.text)
                 title = doc.title()
                 content = doc.summary()
@@ -221,6 +231,9 @@ class EnhancedWebSearcher:
         
         driver = None
         try:
+            if not SELENIUM_AVAILABLE or Options is None or webdriver is None or WebDriverWait is None or EC is None or By is None:
+                return None, "Selenium not available", None
+                
             options = Options()
             options.add_argument("--headless")
             options.add_argument("--no-sandbox")
@@ -240,7 +253,7 @@ class EnhancedWebSearcher:
             
             title = driver.title
             
-            if READABILITY_AVAILABLE:
+            if READABILITY_AVAILABLE and Document is not None:
                 doc = Document(driver.page_source)
                 content = doc.summary()
                 
@@ -309,6 +322,10 @@ class EnhancedWebSearcher:
             return []
         
         try:
+            if not DUCKDUCKGO_AVAILABLE or DDGS is None:
+                logger.warning("DuckDuckGo not available")
+                return []
+                
             results = []
             with DDGS() as ddgs:
                 search_results = ddgs.text(

@@ -2,24 +2,24 @@ import os
 import json
 from datetime import datetime
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtProperty, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QGuiApplication
 
 # Import the save_current_chat function from your modular memory system
 try:
     from eidolon.memory.chat_storage import save_current_chat
 except ImportError:
-    def save_current_chat(name, history):
-        print(f"⚠️ [Stub] Would save chat '{name}' with {len(history)} messages")
-        return name
+    def save_current_chat(chat_name, messages, folder="chats"):
+        print(f"⚠️ [Stub] Would save chat '{chat_name}' with {len(messages)} messages")
+        return chat_name
 
 # Import your global state cleanly (temporary until replaced with state injection)
 try:
     import globals_state as gs
 except ImportError:
     class MockGlobals:
-        current_chat_name = None
-        chat_history = []
+        current_chat_name: str | None = None
+        chat_history: list = []
     gs = MockGlobals()
 
 # Sidebar Backend Class
@@ -47,29 +47,24 @@ class SidebarBackend(QObject):
         self.scan_existing_chats()
 
 
-    @pyqtProperty(str)
-    def currentChatName(self):
+    def get_current_chat_name(self) -> str:
         return self._current_chat_name
 
-    @pyqtProperty(bool, notify=sidebarVisibilityChanged)
-    def sidebarVisible(self):
+    def get_sidebar_visible(self) -> bool:
         return self._sidebar_visible
 
-    @sidebarVisible.setter
-    def sidebarVisible(self, value):
+    def set_sidebar_visible(self, value: bool) -> None:
         if self._sidebar_visible != value:
             self._sidebar_visible = value
             self.sidebarVisibilityChanged.emit(value)
 
-    @pyqtProperty('QVariantList', notify=chatHistoryChanged)
-    def chatHistory(self):
+    def get_chat_history(self) -> list:
         """Return the appropriate chat history list for QML ListView"""
         result = self._filtered_chat_history if self._search_filter else self._chat_history
         print(f"[SidebarBackend] chatHistory property accessed, returning {len(result)} items")
         return result
 
-    @pyqtProperty(bool)
-    def hasUnsavedChanges(self):
+    def get_has_unsaved_changes(self) -> bool:
         if not gs.current_chat_name or not gs.chat_history:
             return False
         try:

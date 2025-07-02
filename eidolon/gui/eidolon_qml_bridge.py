@@ -1,6 +1,6 @@
 # eidolon_qml_bridge.py
 
-from PyQt6.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer, pyqtProperty
+from PyQt6.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer
 from PyQt6.QtGui import QGuiApplication
 import threading
 
@@ -64,12 +64,10 @@ class EidolonQMLBridge(QObject):
             threading.Thread(target=self._continue_function, daemon=True).start()
             self._continue_function = None
 
-    @pyqtProperty(bool, notify=animatedTypingEnabledChanged)
-    def animatedTypingEnabled(self):
+    def get_animated_typing_enabled(self) -> bool:
         return self.app_context.animated_typing_enabled
 
-    @animatedTypingEnabled.setter
-    def animatedTypingEnabled(self, value):
+    def set_animated_typing_enabled(self, value: bool) -> None:
         if value != self.app_context.animated_typing_enabled:
             self.app_context.animated_typing_enabled = value
             self.animatedTypingEnabledChanged.emit()

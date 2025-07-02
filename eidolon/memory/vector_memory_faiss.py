@@ -56,6 +56,6 @@ def retrieve_relevant_memories(query, top_k=5):
         norm = np.linalg.norm(query_emb)
         if norm != 0:
             query_emb = query_emb / norm
-        D, I = index.search(np.array([query_emb], dtype=np.float32), top_k)
+        D, I = index.search(np.array([query_emb], dtype=np.float32), k=top_k)
         results = [metadata[i] for i in I[0] if i < len(metadata)]
         return "\n".join(results)
