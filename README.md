@@ -142,4 +142,4 @@ MIT License
 
 ---
 
-This README provides a **clean, professional structure** for your GitHub repo, making it clear, skimmable, and ready for presentation.
+
