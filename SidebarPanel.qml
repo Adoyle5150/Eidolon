@@ -40,7 +40,11 @@ Item {
                 console.log("📝 Chat history updated, refreshing list")
                 var backend = getBackend()
                 if (chatList && chatList.model && backend) {
+                    console.log("🔄 Updating ListView model, current count:", chatList.count)
                     chatList.model = backend.chatHistory
+                    console.log("🔄 ListView model updated, new count:", chatList.count)
+                } else {
+                    console.log("⚠️ Cannot update ListView - missing components")
                 }
             }
 
@@ -213,10 +217,14 @@ Item {
                 placeholderTextColor: "#888888"
                 
                 onTextChanged: {
-                    console.log("Filter:", chatSearch.text)
+                    console.log("🔍 Filter text changed:", chatSearch.text)
                     var backend = getBackend()
                     if (backend) {
+                        console.log("🔍 Calling filterChats with:", chatSearch.text)
                         backend.filterChats(chatSearch.text)
+                        console.log("🔍 filterChats called")
+                    } else {
+                        console.log("⚠️ Backend not available for filtering")
                     }
                 }
             }
@@ -274,7 +282,11 @@ Item {
                                 console.log("🔄 Manual refresh requested")
                                 var backend = getBackend()
                                 if (backend) {
+                                    console.log("🔄 Calling refreshChatHistory()")
                                     backend.refreshChatHistory()
+                                    console.log("🔄 refreshChatHistory() called")
+                                } else {
+                                    console.log("⚠️ Backend not available for refresh")
                                 }
                             }
                         }
@@ -299,6 +311,14 @@ Item {
 
                         onCountChanged: {
                             console.log("📋 Chat list updated, count:", count)
+                        }
+
+                        Component.onCompleted: {
+                            console.log("🔍 ListView completed, model count:", count)
+                            console.log("🔍 Backend available:", typeof sidebarBackend !== "undefined")
+                            if (typeof sidebarBackend !== "undefined") {
+                                console.log("🔍 Backend chatHistory length:", sidebarBackend.chatHistory ? sidebarBackend.chatHistory.length : "undefined")
+                            }
                         }
 
                         delegate: Rectangle {
@@ -351,10 +371,15 @@ Item {
                                     }
 
                                     const chatName = (modelData && modelData.name) ? modelData.name : "Untitled Chat"
+                                    console.log("🖱️ Chat clicked:", chatName)
+                                    console.log("🖱️ Current chat:", backend.currentChatName)
+                                    
                                     if (backend.currentChatName !== chatName) {
                                         console.log("💾 Saving current chat before switching to:", chatName)
                                         backend.saveCurrentChat()
+                                        console.log("📁 Loading chat:", chatName)
                                         backend.loadChat(chatName)
+                                        console.log("✅ loadChat called")
                                     } else {
                                         console.log("🟡 Ignored duplicate chat load:", chatName)
                                     }

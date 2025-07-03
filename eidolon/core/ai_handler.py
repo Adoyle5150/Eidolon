@@ -22,6 +22,10 @@ def ask_server(messages, use_web_search=True):
     """
     Send messages to the local LLM server and return the cleaned response.
     Optionally injects system identity, web search prompt, and relevant memories.
+    
+    Note: This function now expects a limited message history (typically last 8 messages)
+    to prevent token overload. The calling code should use _get_limited_history() 
+    to prepare the messages parameter.
     """
     try:
         identity = get_core_memory()
@@ -49,10 +53,17 @@ def ask_server(messages, use_web_search=True):
             ).start()
 
         # Retrieve relevant memories and prepend to prompt
-        memory_block = vector_memory.retrieve_relevant_memories(latest["content"], top_k=5)
+        memory_block = vector_memory.retrieve_relevant_memories(
+            latest["content"], 
+            top_k=8,  # Search more broadly
+            similarity_threshold=0.2,  # Lower threshold to include more relevant memories
+            max_results=3  # Limit final results to prevent token bloat
+        )
         if memory_block:
-            latest["content"] = f"{memory_block}\n{latest['content']}".strip()
-            print("✅ Injected FAISS vector memories into prompt.")
+            # Format memory injection clearly
+            formatted_memory = f"=== RELEVANT MEMORIES ===\n{memory_block}\n=== END MEMORIES ===\n\n"
+            latest["content"] = f"{formatted_memory}{latest['content']}".strip()
+            print("✅ Injected deduplicated FAISS vector memories into prompt.")
         else:
             print("ℹ️ No relevant memories retrieved.")
 

@@ -70,5 +70,41 @@
     "success_rate": 1.0,
     "results_length": 958,
     "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T18:52:50.795208",
+    "query": "the president of the united states 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1802,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T19:01:15.564880",
+    "query": "I like wolves greeting",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 1923,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T19:16:24.094494",
+    "query": "Information about wolves",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 1626,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T19:51:37.621356",
+    "query": "Who won the most recent NBA Finals?",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1985,
+    "intelligent_mode": true
   }
 ]

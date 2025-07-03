@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty
 from PyQt6.QtGui import QGuiApplication
 
 # Import the save_current_chat function from your modular memory system
@@ -46,6 +46,44 @@ class SidebarBackend(QObject):
         self.load_chat_history()
         self.scan_existing_chats()
 
+    # ✅ Add pyqtProperty decorators for QML access
+    @pyqtProperty(str, notify=currentChatChanged)
+    def currentChatName(self):
+        return self._current_chat_name
+
+    @pyqtProperty(bool, notify=sidebarVisibilityChanged)
+    def sidebarVisible(self):
+        return self._sidebar_visible
+
+    @sidebarVisible.setter
+    def sidebarVisible(self, value):
+        if self._sidebar_visible != value:
+            self._sidebar_visible = value
+            print(f"[SidebarBackend] Sidebar visibility changed to: {value}")
+            self.sidebarVisibilityChanged.emit(value)
+
+    @pyqtProperty(list, notify=chatHistoryChanged)
+    def chatHistory(self):
+        """Return the appropriate chat history list for QML ListView"""
+        result = self._filtered_chat_history if self._search_filter else self._chat_history
+        print(f"[SidebarBackend] chatHistory property accessed, returning {len(result)} items")
+        return result
+
+    @pyqtProperty(bool)
+    def hasUnsavedChanges(self):
+        if not gs.current_chat_name or not gs.chat_history:
+            return False
+        try:
+            safe_name = gs.current_chat_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
+            path = f"chats/{safe_name}.json"
+            if not os.path.exists(path):
+                return len(gs.chat_history) > 0
+            with open(path, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                saved_history = saved if isinstance(saved, list) else saved.get("messages", [])
+                return len(gs.chat_history) != len(saved_history)
+        except:
+            return True
 
     def get_current_chat_name(self) -> str:
         return self._current_chat_name
@@ -53,10 +91,7 @@ class SidebarBackend(QObject):
     def get_sidebar_visible(self) -> bool:
         return self._sidebar_visible
 
-    def set_sidebar_visible(self, value: bool) -> None:
-        if self._sidebar_visible != value:
-            self._sidebar_visible = value
-            self.sidebarVisibilityChanged.emit(value)
+
 
     def get_chat_history(self) -> list:
         """Return the appropriate chat history list for QML ListView"""
@@ -141,6 +176,7 @@ class SidebarBackend(QObject):
             
             # Save the updated history and notify QML
             self.save_chat_history()
+            print(f"[SidebarBackend] Emitting chatHistoryChanged signal after scan, total chats: {len(self._chat_history)}")
             self.chatHistoryChanged.emit()
             print(f"[SidebarBackend] Scan complete, total chats: {len(self._chat_history)}")
             
@@ -214,9 +250,11 @@ class SidebarBackend(QObject):
 
     @pyqtSlot()
     def saveCurrentChat(self):
+        print("[SidebarBackend] saveCurrentChat() called")
         self.save_current_if_possible()
 
     def save_current_if_possible(self):
+        print(f"[SidebarBackend] save_current_if_possible() called: current_chat_name={gs.current_chat_name!r}, chat_history_len={len(gs.chat_history) if gs.chat_history else 0}")
         try:
             if not gs.current_chat_name:
                 print("⚠️ Skipping save: current_chat_name is empty")
@@ -303,9 +341,15 @@ class SidebarBackend(QObject):
                 print("[SidebarBackend] No data/chat_history.json found, starting fresh")
                 self._chat_history = []
                 self.save_chat_history()
+            
+            print(f"[SidebarBackend] Initial chat history loaded: {len(self._chat_history)} items")
+            print(f"[SidebarBackend] Emitting initial chatHistoryChanged signal")
+            self.chatHistoryChanged.emit()
         except Exception as e:
             print(f"[SidebarBackend] Error loading chat history: {e}")
             self._chat_history = []
+            print(f"[SidebarBackend] Emitting chatHistoryChanged signal after error")
+            self.chatHistoryChanged.emit()
 
     def save_chat_history(self):
         """Save chat history to data/chat_history.json"""

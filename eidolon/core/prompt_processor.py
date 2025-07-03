@@ -15,9 +15,18 @@ from web.searcher import web_search
 from eidolon.memory.chat_storage import save_current_chat, save_individual_chat
 
 
+def _get_limited_history(chat_history, max_messages=8):
+    """
+    Get a limited subset of chat history to prevent token overload.
+    Returns the last max_messages from the chat history.
+    """
+    if len(chat_history) <= max_messages:
+        return chat_history
+    return chat_history[-max_messages:]
+
+
 
 WEB_SEARCH_AVAILABLE = True  # or False if you want to disable
-
 
 
 
@@ -52,8 +61,10 @@ def process_prompt(prompt, app_context):
 
     # Add user prompt to history
     app_context.chat_history.append({"role": "user", "content": prompt})
-    if len(app_context.chat_history) > 40:
-        app_context.chat_history = app_context.chat_history[-40:]
+    # Keep only last 20 messages in full history to prevent memory bloat
+    if len(app_context.chat_history) > 20:
+        app_context.chat_history = app_context.chat_history[-20:]
+        print(f"📝 Trimmed chat history to last 20 messages")
 
     # Check if search is needed
     search_keywords = [
@@ -80,9 +91,12 @@ def process_prompt(prompt, app_context):
         ]
         needs_search = any(re.search(pattern, prompt.lower()) for pattern in search_patterns)
 
-    # Get model reply
+    # Get model reply - only use last 8 messages to prevent token overload
     try:
-        reply = ask_server(app_context.chat_history)
+        # Limit to last 8 messages to prevent token overload and repeated context issues
+        limited_history = _get_limited_history(app_context.chat_history, max_messages=8)
+        print(f"📝 Using last {len(limited_history)} messages from chat history (total: {len(app_context.chat_history)})")
+        reply = ask_server(limited_history)
     except Exception as e:
         print(f"❌ Error getting server reply: {e}")
         reply = "I apologize, but I encountered an error while processing your request. Please try again."
@@ -198,7 +212,10 @@ Important instructions:
 
     app_context.chat_history.append({"role": "user", "content": search_context})
     try:
-        reply = ask_server(app_context.chat_history, use_web_search=False)
+        # Limit to last 8 messages for search-enhanced replies too
+        limited_history = _get_limited_history(app_context.chat_history, max_messages=8)
+        print(f"📝 Using last {len(limited_history)} messages for search-enhanced reply (total: {len(app_context.chat_history)})")
+        reply = ask_server(limited_history, use_web_search=False)
         print("✅ Web search completed, got enhanced reply")
         return reply
     except Exception as e:
@@ -213,6 +230,7 @@ def _handle_search_failure(reply, search_query, prompt, app_context):
     if not reply.strip():
         reply = f"I tried to search for more information about '{search_query}', but the search failed. Let me answer based on my existing knowledge.\n\n"
         try:
+            # For search failure, use a simple single-message context
             basic_reply = ask_server([{"role": "user", "content": f"Answer this question based only on your training data: {prompt}"}], use_web_search=False)
             reply += basic_reply
         except Exception as e:
