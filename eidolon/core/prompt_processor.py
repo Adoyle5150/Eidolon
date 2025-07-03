@@ -6,24 +6,13 @@ import traceback
 
 from datetime import datetime
 
-from eidolon.core.ai_handler import ask_server
+from eidolon.core.ai_handler import ask_server, _get_limited_history
 from eidolon.core.state_manager import set_assistant_state
-from eidolon.utils.helpers import is_valid_python
+from eidolon.utils.helpers import is_valid_python, is_valid_message
 from web.searcher import web_search
 
 
 from eidolon.memory.chat_storage import save_current_chat, save_individual_chat
-
-
-def _get_limited_history(chat_history, max_messages=8):
-    """
-    Get a limited subset of chat history to prevent token overload.
-    Returns the last max_messages from the chat history.
-    """
-    if len(chat_history) <= max_messages:
-        return chat_history
-    return chat_history[-max_messages:]
-
 
 
 WEB_SEARCH_AVAILABLE = True  # or False if you want to disable
@@ -61,10 +50,11 @@ def process_prompt(prompt, app_context):
 
     # Add user prompt to history
     app_context.chat_history.append({"role": "user", "content": prompt})
-    # Keep only last 20 messages in full history to prevent memory bloat
+    # Keep only last 20 valid messages in full history to prevent memory bloat
+    app_context.chat_history = [m for m in app_context.chat_history if is_valid_message(m)]
     if len(app_context.chat_history) > 20:
         app_context.chat_history = app_context.chat_history[-20:]
-        print(f"📝 Trimmed chat history to last 20 messages")
+        print(f"📝 Trimmed chat history to last 20 valid messages")
 
     # Check if search is needed
     search_keywords = [
@@ -93,9 +83,11 @@ def process_prompt(prompt, app_context):
 
     # Get model reply - only use last 8 messages to prevent token overload
     try:
-        # Limit to last 8 messages to prevent token overload and repeated context issues
-        limited_history = _get_limited_history(app_context.chat_history, max_messages=8)
-        print(f"📝 Using last {len(limited_history)} messages from chat history (total: {len(app_context.chat_history)})")
+        # Limit to last 5 valid messages to prevent token overload and repeated context issues
+        limited_history = _get_limited_history(app_context.chat_history, max_messages=5)
+        print(f"📝 Using last {len(limited_history)} valid messages from chat history (total: {len(app_context.chat_history)})")
+        for idx, msg in enumerate(limited_history):
+            print(f"   [QML PRE-PUSH] idx={idx} role={msg.get('role')} content_len={len(msg.get('content', ''))}")
         reply = ask_server(limited_history)
     except Exception as e:
         print(f"❌ Error getting server reply: {e}")
@@ -213,7 +205,7 @@ Important instructions:
     app_context.chat_history.append({"role": "user", "content": search_context})
     try:
         # Limit to last 8 messages for search-enhanced replies too
-        limited_history = _get_limited_history(app_context.chat_history, max_messages=8)
+        limited_history = _get_limited_history(app_context.chat_history, max_messages=5)
         print(f"📝 Using last {len(limited_history)} messages for search-enhanced reply (total: {len(app_context.chat_history)})")
         reply = ask_server(limited_history, use_web_search=False)
         print("✅ Web search completed, got enhanced reply")
@@ -331,8 +323,13 @@ def _save_chat_data(app_context):
 def _send_response_to_ui(reply, app_context):
     """Send response to UI"""
     print("📤 Sending message to QML")
+    # Validate reply before sending
+    if not isinstance(reply, str):
+        print(f"⚠️ Reply to UI is not a string, converting: {type(reply)}")
+        reply = str(reply)
     if app_context.push_message_func:
         try:
+            print(f"   [QML PRE-PUSH] idx=0 role=assistant content_len={len(reply)}")
             app_context.push_message_func("assistant", reply)
             print("✅ Message sent via push_message_func")
         except Exception as e:
@@ -346,6 +343,7 @@ def _send_response_to_ui(reply, app_context):
                     print(f"⚠️ GUI injection error: {gui_e}")
     elif app_context.gui:
         try:
+            print(f"   [QML PRE-PUSH] idx=0 role=assistant content_len={len(reply)}")
             app_context.gui.inject_response("🤖 " + reply + "\n")
             print("✅ Message sent via GUI")
         except Exception as e:

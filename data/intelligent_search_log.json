@@ -106,5 +106,32 @@
     "success_rate": 1.0,
     "results_length": 1985,
     "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T20:52:20.078660",
+    "query": "best World of Warcraft player 2023 wolf",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 831,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T21:18:00.388764",
+    "query": "top current World of Warcraft player 2023",
+    "successful_extractions": 7,
+    "total_results": 8,
+    "success_rate": 0.875,
+    "results_length": 757,
+    "intelligent_mode": true
+  },
+  {
+    "timestamp": "2025-07-02T21:23:07.537307",
+    "query": "Ill let you know 2025",
+    "successful_extractions": 8,
+    "total_results": 8,
+    "success_rate": 1.0,
+    "results_length": 1517,
+    "intelligent_mode": true
   }
 ]

@@ -47,64 +47,54 @@ class IntelligentSummarizer:
         sentence_scores.sort(key=lambda x: x[1], reverse=True)
         return [sentence for sentence, _ in sentence_scores[:max_sentences]]
     
+    def deduplicate_and_clean_lines(self, lines: List[str], max_lines: int = 3) -> List[str]:
+        """Deduplicate and clean lines, returning only the top N unique lines."""
+        seen = set()
+        clean_lines = []
+        for line in lines:
+            line = line.strip()
+            if not line or line.lower() in seen:
+                continue
+            # Remove lines that are substrings of already included lines
+            if any(line in l for l in clean_lines):
+                continue
+            seen.add(line.lower())
+            clean_lines.append(line)
+            if len(clean_lines) >= max_lines:
+                break
+        return clean_lines
+
     def create_summary(self, results: List[Dict], query: str, max_length: int = 1500) -> str:
-        """Create an intelligent summary from search results"""
+        """Create an intelligent summary from search results, with deduplication and top 2-3 lines only."""
         if not results:
             return "No relevant information found."
-        
         query_terms = self.analyzer.extract_query_terms(query)
-        
-        # Collect key information from all sources
         key_points = []
         sources_used = []
-        
         for result in results:
             if not result.get('success') or not result.get('content'):
                 continue
-            
-            # Extract key sentences
             key_sentences = self.extract_key_sentences(
                 result['content'], 
                 query_terms, 
                 max_sentences=2
             )
-            
             if key_sentences:
-                # Format with source attribution
                 source_info = f"[{result['title']}]({result['url']})"
                 for sentence in key_sentences:
                     key_points.append(f"• {sentence.strip()}")
-                
                 if source_info not in sources_used:
                     sources_used.append(source_info)
-        
+        # Deduplicate and limit to top 2-3 lines
+        key_points = self.deduplicate_and_clean_lines(key_points, max_lines=3)
         if not key_points:
             return "No relevant information could be extracted from the search results."
-        
-        # Build summary
         summary_parts = []
-        
-        # Add direct answer section
         summary_parts.append(f"## 🎯 Key Information about: {query}")
-        
-        # Add key points (limit to prevent too long summaries)
-        current_length = 0
-        included_points = []
-        
-        for point in key_points[:8]:  # Limit to top 8 points
-            if current_length + len(point) < max_length * 0.8:  # Reserve space for sources
-                included_points.append(point)
-                current_length += len(point)
-            else:
-                break
-        
-        if included_points:
-            summary_parts.append('\n'.join(included_points))
-        
-        # Add sources section
+        if key_points:
+            summary_parts.append('\n'.join(key_points))
         if sources_used:
             summary_parts.append("\n## 📚 Sources")
-            for i, source in enumerate(sources_used[:5], 1):  # Limit to 5 sources
+            for i, source in enumerate(sources_used[:3], 1):  # Limit to 3 sources
                 summary_parts.append(f"{i}. {source}")
-        
         return '\n\n'.join(summary_parts)

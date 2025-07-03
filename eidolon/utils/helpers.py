@@ -44,3 +44,11 @@ def optimize_search_query(query, intent="general"):
         optimized += " current 2025"
     
     return optimized[:100]
+
+def is_valid_message(msg):
+    """Return True if msg is a dict with string 'role' and string 'content'."""
+    return (
+        isinstance(msg, dict) and
+        isinstance(msg.get("role"), str) and
+        isinstance(msg.get("content"), str)
+    )

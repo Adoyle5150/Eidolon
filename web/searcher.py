@@ -1,7 +1,7 @@
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import time
 import random
 import json
@@ -12,14 +12,13 @@ import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
-from typing import List, Dict, Optional, Tuple, Set, Union
+from typing import List, Dict, Optional, Tuple, Set
 import hashlib
 from collections import Counter
 import math
 from web.analyzer import ContentAnalyzer
 from web.summarizer import IntelligentSummarizer
 from web.cache import ContentCache
-from bs4 import Tag
 
 _searcher = None
 
@@ -31,7 +30,6 @@ try:
     READABILITY_AVAILABLE = True
 except ImportError:
     READABILITY_AVAILABLE = False
-    Document = None
 
 # DuckDuckGo search
 try:
@@ -39,7 +37,6 @@ try:
     DUCKDUCKGO_AVAILABLE = True
 except ImportError:
     DUCKDUCKGO_AVAILABLE = False
-    DDGS = None
 
 # Selenium fallback
 try:
@@ -53,14 +50,6 @@ try:
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
-    webdriver = None
-    Options = None
-    Service = None
-    By = None
-    WebDriverWait = None
-    EC = None
-    TimeoutException = None
-    WebDriverException = None
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -191,7 +180,7 @@ class EnhancedWebSearcher:
             if 'text/html' not in content_type:
                 return None, f"Non-HTML content type: {content_type}", None
             
-            if READABILITY_AVAILABLE and Document is not None:
+            if READABILITY_AVAILABLE:
                 doc = Document(response.text)
                 title = doc.title()
                 content = doc.summary()
@@ -232,9 +221,6 @@ class EnhancedWebSearcher:
         
         driver = None
         try:
-            if not SELENIUM_AVAILABLE or Options is None or webdriver is None or WebDriverWait is None or EC is None or By is None:
-                return None, "Selenium not available", None
-                
             options = Options()
             options.add_argument("--headless")
             options.add_argument("--no-sandbox")
@@ -254,7 +240,7 @@ class EnhancedWebSearcher:
             
             title = driver.title
             
-            if READABILITY_AVAILABLE and Document is not None:
+            if READABILITY_AVAILABLE:
                 doc = Document(driver.page_source)
                 content = doc.summary()
                 
@@ -323,10 +309,6 @@ class EnhancedWebSearcher:
             return []
         
         try:
-            if not DUCKDUCKGO_AVAILABLE or DDGS is None:
-                logger.warning("DuckDuckGo not available")
-                return []
-                
             results = []
             with DDGS() as ddgs:
                 search_results = ddgs.text(
@@ -362,25 +344,27 @@ class EnhancedWebSearcher:
             for result_div in soup.find_all('li', class_='b_algo')[:self.config['max_results']]:
                 if not isinstance(result_div, Tag):
                     continue
-                    
-                title_tag = result_div.find('h2')
-                if not isinstance(title_tag, Tag):
+
+                title_tag = result_div.find('h2') if hasattr(result_div, 'find') else None
+                if not (title_tag and isinstance(title_tag, Tag)):
                     continue
                 
-                link_tag = title_tag.find('a')
-                if not isinstance(link_tag, Tag):
+                link_tag = title_tag.find('a') if hasattr(title_tag, 'find') else None
+                if not (link_tag and isinstance(link_tag, Tag)):
                     continue
                 
-                title = title_tag.get_text().strip()
-                url = str(link_tag.get('href', ''))
+                title = title_tag.get_text().strip() if hasattr(title_tag, 'get_text') else ""
+                url = link_tag.get('href', '') if hasattr(link_tag, 'get') else ""
+                url = str(url) if url else ""
                 
-                snippet_tag = result_div.find('p')
-                if not isinstance(snippet_tag, Tag):
-                    snippet_tag = result_div.find('div', class_='b_caption')
+                snippet_tag = None
+                if hasattr(result_div, 'find'):
+                    snippet_tag = result_div.find('p')
+                    if not snippet_tag:
+                        snippet_tag = result_div.find('div', attrs={'class': 'b_caption'})
+                snippet = snippet_tag.get_text().strip() if snippet_tag and hasattr(snippet_tag, 'get_text') else ''
                 
-                snippet = snippet_tag.get_text().strip() if isinstance(snippet_tag, Tag) else ''
-                
-                if self._is_valid_url(url):
+                if url and isinstance(url, str) and self._is_valid_url(url):
                     results.append({
                         'title': title,
                         'url': url,
@@ -522,15 +506,11 @@ class EnhancedWebSearcher:
                     logger.warning(f"Progress callback failed: {e}")
         
         # Create intelligent summary
-        if self.config.get('smart_summarization', True):
-            summary = self.summarizer.create_summary(
-                relevant_results[:5],  # Use top 5 most relevant results
-                query,
-                max_length=self.config.get('max_summary_length', 1500)
-            )
-        else:
-            # Fallback to basic formatting
-            summary = self._create_basic_summary(relevant_results[:3], query)
+        summary = self.summarizer.create_summary(
+            relevant_results[:5],  # Use top 5 most relevant results
+            query,
+            max_length=self.config.get('max_summary_length', 1500)
+        )
         
         # Add performance stats
         successful_count = len([r for r in final_results if r['success']])
@@ -578,7 +558,7 @@ class EnhancedWebSearcher:
                 'intelligent_mode': self.config.get('smart_summarization', True)
             }
             
-            log_path = "data/intelligent_search_log.json"
+            log_path = "intelligent_search_log.json"
             log_data = []
             
             if os.path.exists(log_path):
@@ -599,7 +579,7 @@ class EnhancedWebSearcher:
     
     def get_search_stats(self) -> Dict:
         """Get search performance statistics"""
-        log_path = "data/intelligent_search_log.json"
+        log_path = "intelligent_search_log.json"
         if not os.path.exists(log_path):
             return {"total_searches": 0, "average_success_rate": 0.0}
         

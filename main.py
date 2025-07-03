@@ -64,7 +64,7 @@ from eidolon.gui.sidebar_backend import SidebarBackend
 from eidolon.memory.core_memory import get_core_memory, ensure_core_memory
 from eidolon.core.server_utils import start_llama_web_server, threaded_llama_start
 from eidolon.core.state_manager import set_assistant_state
-from eidolon.utils.helpers import is_valid_python, optimize_search_query
+from eidolon.utils.helpers import is_valid_python, optimize_search_query, is_valid_message
 from eidolon.core.ai_handler import ask_server
 from eidolon import config
 from eidolon.core.prompt_processor import process_prompt
@@ -224,6 +224,14 @@ def main():
     app_context.root.setProperty("assistantState", "ready")
 
     def push_message(role, content):
+        # Validate before sending to QML
+        if not isinstance(role, str):
+            print(f"⚠️ Role is not a string, converting: {type(role)}")
+            role = str(role)
+        if not isinstance(content, str):
+            print(f"⚠️ Content is not a string, converting: {type(content)}")
+            content = str(content)
+        print(f"   [QML PRE-PUSH] idx=0 role={role} content_len={len(content)}")
         if app_context.root:
             if role == "assistant":
                 if app_context.animated_typing_enabled:
@@ -245,17 +253,21 @@ def main():
                     set_assistant_state("ready", qml_bridge=app_context.qml_bridge, root=app_context.root)
 
                 if app_context.current_chat_name:
-                    app_context.chat_history.append({"role": role, "content": content})
-                    actual_name = save_current_chat(app_context.current_chat_name, app_context.chat_history)
-                    if actual_name != app_context.current_chat_name:
-                        app_context.current_chat_name = actual_name
-                        if app_context.sidebar_backend is not None:
-                            app_context.sidebar_backend._current_chat_name = actual_name
-                            app_context.sidebar_backend.currentChatChanged.emit(actual_name)
+                    msg = {"role": role, "content": content}
+                    if is_valid_message(msg):
+                        app_context.chat_history.append(msg)
+                        actual_name = save_current_chat(app_context.current_chat_name, app_context.chat_history)
+                        if actual_name != app_context.current_chat_name:
+                            app_context.current_chat_name = actual_name
+                            if app_context.sidebar_backend is not None:
+                                app_context.sidebar_backend._current_chat_name = actual_name
+                                app_context.sidebar_backend.currentChatChanged.emit(actual_name)
 
-                    # ✅ Only reorder to top when sending/receiving a message
-                    if app_context.sidebar_backend is not None:
-                        app_context.sidebar_backend.add_chat_to_history(actual_name, force_top=True)
+                        # ✅ Only reorder to top when sending/receiving a message
+                        if app_context.sidebar_backend is not None:
+                            app_context.sidebar_backend.add_chat_to_history(actual_name, force_top=True)
+                    else:
+                        print(f"⚠️ Skipped appending invalid message to chat_history: {msg}")
 
     app_context.push_message_func = push_message
     bridge.messageReceived.connect(push_message)

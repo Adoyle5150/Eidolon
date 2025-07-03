@@ -5,7 +5,7 @@ import re
 import threading
 
 from eidolon.memory.core_memory import get_core_memory
-from eidolon.utils.helpers import is_valid_python
+from eidolon.utils.helpers import is_valid_python, is_valid_message
 from eidolon.memory import vector_memory_faiss as vector_memory
 
 # Local constants used only by ask_server
@@ -30,19 +30,29 @@ def ask_server(messages, use_web_search=True):
     try:
         identity = get_core_memory()
 
+        # --- WEB SEARCH SYSTEM PROMPT DEDUPLICATION ---
         if use_web_search and WEB_SEARCH_AVAILABLE:
             search_instruction_added = False
             for msg in messages:
                 if msg.get("role") == "system":
-                    if "web search" not in msg["content"].lower():
+                    # Check for exact prompt, not just 'web search'
+                    if WEB_SEARCH_SYSTEM_PROMPT not in msg["content"]:
                         msg["content"] += "\n\n" + WEB_SEARCH_SYSTEM_PROMPT
                     search_instruction_added = True
                     break
             if not search_instruction_added:
                 messages.insert(0, {"role": "system", "content": WEB_SEARCH_SYSTEM_PROMPT})
 
-        modified = messages[:-1]
-        latest = messages[-1]
+        # Only keep valid messages
+        valid_messages = [m for m in messages if is_valid_message(m)]
+        if not valid_messages:
+            raise ValueError("No valid messages to send to server.")
+        modified = valid_messages[:-1]
+        latest = valid_messages[-1]
+
+        # Ensure latest['content'] is always a string
+        if not isinstance(latest["content"], str):
+            latest["content"] = str(latest["content"])
 
         # Store "remember" statements in FAISS without blocking
         if latest["content"].lower().startswith("remember"):
@@ -52,20 +62,28 @@ def ask_server(messages, use_web_search=True):
                 daemon=True
             ).start()
 
-        # Retrieve relevant memories and prepend to prompt
-        memory_block = vector_memory.retrieve_relevant_memories(
-            latest["content"], 
-            top_k=8,  # Search more broadly
-            similarity_threshold=0.2,  # Lower threshold to include more relevant memories
-            max_results=3  # Limit final results to prevent token bloat
-        )
-        if memory_block:
+        # --- THROTTLE VECTOR MEMORY INJECTION DURING SEARCH ---
+        memory_block = None
+        if not use_web_search:  # Only inject vector memory if NOT using web search
+            # Skip memory injection if input is too short (<= 3 words)
+            if len(latest["content"].split()) <= 3:
+                memory_block = None
+                print("\u2139\ufe0f Skipping memory injection for short/trivial input.")
+            else:
+                memory_block = vector_memory.retrieve_relevant_memories(
+                    latest["content"], 
+                    top_k=8,  # Search more broadly
+                    similarity_threshold=0.7,  # Raise threshold to prevent weak matches
+                    max_results=3  # Limit final results to prevent token bloat
+                )
+        if memory_block and isinstance(memory_block, str) and memory_block.strip():
             # Format memory injection clearly
             formatted_memory = f"=== RELEVANT MEMORIES ===\n{memory_block}\n=== END MEMORIES ===\n\n"
             latest["content"] = f"{formatted_memory}{latest['content']}".strip()
-            print("✅ Injected deduplicated FAISS vector memories into prompt.")
+            print("\u2705 Injected deduplicated FAISS vector memories into prompt.")
         else:
-            print("ℹ️ No relevant memories retrieved.")
+            if not use_web_search:
+                print("\u2139\ufe0f No relevant memories retrieved or injection skipped.")
 
         full_messages = [{"role": "system", "content": identity}] + modified + [latest]
 
@@ -102,3 +120,11 @@ def ask_server(messages, use_web_search=True):
 
     except Exception as e:
         return f"❌ Server Error: {e}"
+
+def _get_limited_history(all_messages, max_messages=5):
+    """
+    Returns the last `max_messages` valid messages from the conversation history,
+    excluding system identity injection to avoid token bloat.
+    """
+    valid = [m for m in all_messages if is_valid_message(m)]
+    return valid[-max_messages:] if len(valid) > max_messages else valid

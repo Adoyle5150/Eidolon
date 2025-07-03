@@ -22,6 +22,8 @@ except ImportError:
         chat_history: list = []
     gs = MockGlobals()
 
+from eidolon.utils.helpers import is_valid_message
+
 # Sidebar Backend Class
 class SidebarBackend(QObject):
     sidebarVisibilityChanged = pyqtSignal(bool)
@@ -87,11 +89,6 @@ class SidebarBackend(QObject):
 
     def get_current_chat_name(self) -> str:
         return self._current_chat_name
-
-    def get_sidebar_visible(self) -> bool:
-        return self._sidebar_visible
-
-
 
     def get_chat_history(self) -> list:
         """Return the appropriate chat history list for QML ListView"""
@@ -374,8 +371,8 @@ class SidebarBackend(QObject):
         QGuiApplication.quit()
 
     @pyqtSlot(str, str)
-    def addMessageToChat(self, role, content):
-        """Add a message to the current chat and update name if needed"""
+    def addMessageToChat(self, role, content, ephemeral=False):
+        """Add a message to the current chat and update name if needed."""
         if not gs.current_chat_name:
             print("⚠️ No current chat active — skipping message save")
             return
@@ -383,25 +380,41 @@ class SidebarBackend(QObject):
             gs.chat_history = []
 
         msg = {"role": role, "content": content}
-        gs.chat_history.append(msg)
+        if ephemeral:
+            msg["ephemeral"] = True
+
+        if is_valid_message(msg):
+            print(f"   [QML PRE-PUSH] idx=0 role={msg.get('role')} content_len={len(msg.get('content', ''))}")
+            gs.chat_history.append(msg)
+        else:
+            print(f"⚠️ Skipped appending invalid message to chat_history: {msg}")
+            return
+
         print(f"💬 Added message ({role}): {content[:50]}...")
-        
-        # If this is the first user message and we have a generic name, update it
-        if (role == "user" and 
-            gs.current_chat_name and 
-            (gs.current_chat_name.startswith("Chat ") or gs.current_chat_name in ["Untitled", "Untitled Chat"])):
-            
-            # Generate a better name from the user message
-            from eidolon.memory.chat_storage import _generate_chat_name
-            new_name = _generate_chat_name(gs.chat_history)
-            if new_name != gs.current_chat_name:
-                gs.current_chat_name = new_name
-                self._current_chat_name = new_name
-                self.currentChatChanged.emit(new_name)
-                print(f"🏷️ Updated chat name to: {new_name}")
-        
-        # Emit signal for any listeners
-        self.chatMessageAdded.emit(gs.current_chat_name, msg)
-        
+
+        # Auto-generate chat name from first user message if generic
+        if (
+            role == "user" and
+            gs.current_chat_name and
+            (
+                gs.current_chat_name.startswith("Chat ") or
+                gs.current_chat_name in ["Untitled", "Untitled Chat"]
+            )
+        ):
+            try:
+                from eidolon.memory.chat_storage import _generate_chat_name
+                new_name = _generate_chat_name(gs.chat_history)
+                if new_name != gs.current_chat_name:
+                    gs.current_chat_name = new_name
+                    self._current_chat_name = new_name
+                    self.currentChatChanged.emit(new_name)
+                    print(f"🏷️ Updated chat name to: {new_name}")
+            except Exception as e:
+                print(f"⚠️ Failed to generate new chat name: {e}")
+
+        # Only emit to QML if not ephemeral
+        if not ephemeral:
+            self.chatMessageAdded.emit(gs.current_chat_name, msg)
+
         # Auto-save after adding message
         self.save_current_if_possible()
