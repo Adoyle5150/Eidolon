@@ -4,11 +4,13 @@ import time
 import glob
 import threading
 from datetime import datetime
+from typing import Optional, Dict, Any, List, Protocol
 from screen_capture import ScreenCapture
 from context_interpreter import ContextInterpreter
 from eidolon_vision_memory import EidolonVisionMemory
 from config import VisionConfig
 from PIL import ImageGrab
+from protocols import ScreenCaptureProtocol, ContextInterpreterProtocol, EidolonVisionMemoryProtocol
 
 # 💬 Smart dictionary of helper prompts
 SMART_RESPONSE_RULES = {
@@ -25,13 +27,13 @@ SMART_RESPONSE_RULES = {
 
 class EidolonVision:
     def __init__(self):
-        self.capture = ScreenCapture(interval=VisionConfig.CAPTURE_INTERVAL)
-        self.interpreter = ContextInterpreter()
-        self.memory = EidolonVisionMemory()
+        self.capture: ScreenCaptureProtocol = ScreenCapture(interval=VisionConfig.CAPTURE_INTERVAL)
+        self.interpreter: ContextInterpreterProtocol = ContextInterpreter()
+        self.memory: EidolonVisionMemoryProtocol = EidolonVisionMemory()
         self.running = False
         self.analysis_thread = None
-        self.current_context = None
-        self.context_callbacks = []
+        self.current_context: Optional[Dict[str, Any]] = None
+        self.context_callbacks: List[Any] = []
 
     def add_context_callback(self, callback):
         self.context_callbacks.append(callback)

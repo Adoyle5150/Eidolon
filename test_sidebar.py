@@ -24,7 +24,7 @@ def test_sidebar_backend():
     # Test properties
     print(f"✅ currentChatName: {sidebar.currentChatName}")
     print(f"✅ sidebarVisible: {sidebar.sidebarVisible}")
-    chat_history = sidebar.chatHistory
+    chat_history = sidebar.get_chat_history()
     print(f"✅ chatHistory length: {len(chat_history)}")
     print(f"✅ hasUnsavedChanges: {sidebar.hasUnsavedChanges}")
     

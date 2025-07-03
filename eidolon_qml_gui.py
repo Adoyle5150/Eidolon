@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer, pyqtProperty
+from PyQt6.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer
 from PyQt6.QtGui import QGuiApplication
 import threading
 
@@ -43,8 +43,8 @@ class EidolonQMLBridge(QObject):
     @pyqtSlot()
     def sendVoiceInput(self):
         try:
-            from voice_input import listen_and_transcribe
-            text = listen_and_transcribe()
+            # Placeholder for voice input functionality
+            text = "[Voice input not implemented]"
         except Exception:
             text = "[Error: Microphone not available]"
         self.sendMessage("🎙 " + text)
@@ -75,12 +75,10 @@ class EidolonQMLBridge(QObject):
             threading.Thread(target=self._continue_function, daemon=True).start()
             self._continue_function = None
 
-    @pyqtProperty(bool, notify=animatedTypingEnabledChanged)
-    def animatedTypingEnabled(self):
+    def get_animated_typing_enabled(self):
         return animated_typing_enabled
 
-    @animatedTypingEnabled.setter
-    def animatedTypingEnabled(self, value):
+    def set_animated_typing_enabled(self, value):
         global animated_typing_enabled
         if value != animated_typing_enabled:
             animated_typing_enabled = value

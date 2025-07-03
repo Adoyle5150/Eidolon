@@ -12,13 +12,14 @@ import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Tuple, Set, Union
 import hashlib
 from collections import Counter
 import math
 from web.analyzer import ContentAnalyzer
 from web.summarizer import IntelligentSummarizer
 from web.cache import ContentCache
+from bs4 import Tag
 
 _searcher = None
 
@@ -359,19 +360,25 @@ class EnhancedWebSearcher:
             results = []
             
             for result_div in soup.find_all('li', class_='b_algo')[:self.config['max_results']]:
+                if not isinstance(result_div, Tag):
+                    continue
+                    
                 title_tag = result_div.find('h2')
-                if not title_tag:
+                if not isinstance(title_tag, Tag):
                     continue
                 
                 link_tag = title_tag.find('a')
-                if not link_tag:
+                if not isinstance(link_tag, Tag):
                     continue
                 
                 title = title_tag.get_text().strip()
-                url = link_tag.get('href', '')
+                url = str(link_tag.get('href', ''))
                 
-                snippet_tag = result_div.find('p') or result_div.find('div', class_='b_caption')
-                snippet = snippet_tag.get_text().strip() if snippet_tag else ''
+                snippet_tag = result_div.find('p')
+                if not isinstance(snippet_tag, Tag):
+                    snippet_tag = result_div.find('div', class_='b_caption')
+                
+                snippet = snippet_tag.get_text().strip() if isinstance(snippet_tag, Tag) else ''
                 
                 if self._is_valid_url(url):
                     results.append({
