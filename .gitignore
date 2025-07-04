@@ -80,6 +80,7 @@ Eidolon Backup/
 .env
 eidolon_config.json
 
+# === llama.cpp and vcpkg ===
 llama.cpp/
 vcpkg/
 
