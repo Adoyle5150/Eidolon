@@ -3,6 +3,7 @@
 import requests
 import re
 import threading
+import json
 
 from eidolon.memory.core_memory import get_core_memory
 from eidolon.utils.helpers import is_valid_python, is_valid_message
@@ -35,7 +36,6 @@ def ask_server(messages, use_web_search=True):
             search_instruction_added = False
             for msg in messages:
                 if msg.get("role") == "system":
-                    # Check for exact prompt, not just 'web search'
                     if WEB_SEARCH_SYSTEM_PROMPT not in msg["content"]:
                         msg["content"] += "\n\n" + WEB_SEARCH_SYSTEM_PROMPT
                     search_instruction_added = True
@@ -43,18 +43,16 @@ def ask_server(messages, use_web_search=True):
             if not search_instruction_added:
                 messages.insert(0, {"role": "system", "content": WEB_SEARCH_SYSTEM_PROMPT})
 
-        # Only keep valid messages
         valid_messages = [m for m in messages if is_valid_message(m)]
         if not valid_messages:
             raise ValueError("No valid messages to send to server.")
+
         modified = valid_messages[:-1]
         latest = valid_messages[-1]
 
-        # Ensure latest['content'] is always a string
         if not isinstance(latest["content"], str):
             latest["content"] = str(latest["content"])
 
-        # Store "remember" statements in FAISS without blocking
         if latest["content"].lower().startswith("remember"):
             threading.Thread(
                 target=vector_memory.store_memory,
@@ -62,22 +60,32 @@ def ask_server(messages, use_web_search=True):
                 daemon=True
             ).start()
 
-        # --- THROTTLE VECTOR MEMORY INJECTION DURING SEARCH ---
+        if latest["content"].lower().startswith(("recall", "what do you remember")):
+            memory_block = vector_memory.retrieve_relevant_memories(
+                latest["content"],
+                top_k=8,
+                similarity_threshold=0.7,
+                max_results=3
+            )
+            if memory_block and isinstance(memory_block, str) and memory_block.strip():
+                formatted_memory = f"=== RELEVANT MEMORIES ===\n{memory_block}\n=== END MEMORIES ===\n\n"
+                latest["content"] = f"{formatted_memory}{latest['content']}".strip()
+                print("\u2705 Injected deduplicated FAISS vector memories into prompt.")
+            else:
+                print("\u2139\ufe0f No relevant memories retrieved or injection skipped.")
+
         memory_block = None
-        if not use_web_search:  # Only inject vector memory if NOT using web search
-            # Skip memory injection if input is too short (<= 3 words)
+        if not use_web_search:
             if len(latest["content"].split()) <= 3:
-                memory_block = None
                 print("\u2139\ufe0f Skipping memory injection for short/trivial input.")
             else:
                 memory_block = vector_memory.retrieve_relevant_memories(
-                    latest["content"], 
-                    top_k=8,  # Search more broadly
-                    similarity_threshold=0.7,  # Raise threshold to prevent weak matches
-                    max_results=3  # Limit final results to prevent token bloat
+                    latest["content"],
+                    top_k=8,
+                    similarity_threshold=0.7,
+                    max_results=3
                 )
         if memory_block and isinstance(memory_block, str) and memory_block.strip():
-            # Format memory injection clearly
             formatted_memory = f"=== RELEVANT MEMORIES ===\n{memory_block}\n=== END MEMORIES ===\n\n"
             latest["content"] = f"{formatted_memory}{latest['content']}".strip()
             print("\u2705 Injected deduplicated FAISS vector memories into prompt.")
@@ -87,18 +95,27 @@ def ask_server(messages, use_web_search=True):
 
         full_messages = [{"role": "system", "content": identity}] + modified + [latest]
 
-        res = requests.post(f"{SERVER_URL}/api/chat", json={
+        payload = {
             "messages": full_messages,
             "stream": False,
             "n_predict": 2048,
             "temperature": 0.7
-        })
+        }
+
+        print(f"\U0001F4AC Sending payload to server: {json.dumps(payload, indent=2)}")
+
+        try:
+            res = requests.post(f"{SERVER_URL}/api/chat", json=payload)
+            res.raise_for_status()
+        except Exception as e:
+            print(f"❌ Request failed: {e}")
+            print(f"Response content: {res.text}")
+            return f"❌ API error: {res.text}"
 
         data = res.json()
         content = data.get("message", {}).get("content") or \
-                 data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                  data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-        # Clean unwanted tokens
         if "</think>" in content:
             content = re.sub(r"^[\s\S]*?</think>(?![\s\S]*?</think>)", "", content, flags=re.DOTALL)
 
@@ -107,7 +124,6 @@ def ask_server(messages, use_web_search=True):
             if not any(t in line for t in ("<|im_", "<jupyter_", "<|start|>", "<|end|>"))
         ])
 
-        # Check for Python code validity
         if "```python" in content:
             code_block = re.findall(r"```python(.*?)```", content, re.DOTALL)
             if code_block:
@@ -119,6 +135,7 @@ def ask_server(messages, use_web_search=True):
         return content.strip()
 
     except Exception as e:
+        print(f"❌ Server Error: {e}")
         return f"❌ Server Error: {e}"
 
 def _get_limited_history(all_messages, max_messages=5):

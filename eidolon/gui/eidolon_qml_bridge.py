@@ -3,6 +3,9 @@
 from PyQt6.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer
 from PyQt6.QtGui import QGuiApplication
 import threading
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from eidolon.core.prompt_processor import process_prompt
 

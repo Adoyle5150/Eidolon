@@ -18,9 +18,9 @@ meta_file = "data/eidolon_vectors_meta.json"
 # Load or initialize FAISS index
 dimension = 384  # all-MiniLM-L6-v2 output dimension
 if os.path.exists(index_file):
-    index = faiss.read_index(index_file)
+    index: faiss.IndexFlatIP = faiss.read_index(index_file)  # type: ignore
 else:
-    index = faiss.IndexFlatIP(dimension)
+    index: faiss.IndexFlatIP = faiss.IndexFlatIP(dimension)
 
 # Load or initialize metadata
 if os.path.exists(meta_file):
@@ -43,7 +43,7 @@ def store_memory(text):
         norm = np.linalg.norm(embedding)
         if norm != 0:
             embedding = embedding / norm
-        index.add(np.array([embedding], dtype=np.float32))
+        index.add(np.array([embedding], dtype=np.float32))  # type: ignore
         metadata.append(text)
         save_index()
         print(f"✅ Stored in FAISS vector memory: {text[:50]}...")
@@ -98,7 +98,7 @@ def retrieve_relevant_memories(query, top_k=5, similarity_threshold=0.3, max_res
             query_emb = query_emb / norm
         
         # Search for top_k results with similarity scores
-        D, I = index.search(np.array([query_emb], dtype=np.float32), k=min(top_k, index.ntotal))
+        D, I = index.search(np.array([query_emb], dtype=np.float32), k=min(top_k, index.ntotal))  # type: ignore
         
         # Filter results by similarity threshold and get unique memories
         relevant_memories = []

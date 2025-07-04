@@ -134,12 +134,5 @@ python main.py
 
 Contributions are welcome! Feel free to fork and submit pull requests.
 
----
-
-## 📜 License
-
-MIT License
-
----
 
 

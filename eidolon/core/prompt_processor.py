@@ -10,8 +10,6 @@ from eidolon.core.ai_handler import ask_server, _get_limited_history
 from eidolon.core.state_manager import set_assistant_state
 from eidolon.utils.helpers import is_valid_python, is_valid_message
 from web.searcher import web_search
-
-
 from eidolon.memory.chat_storage import save_current_chat, save_individual_chat
 
 
@@ -69,8 +67,8 @@ def process_prompt(prompt, app_context):
         "just happened", "right now", "live", "real time"
     ]
 
-    needs_search = any(keyword in prompt.lower() for keyword in search_keywords)
-    is_urgent = any(keyword in prompt.lower() for keyword in urgent_keywords)
+    needs_search = any(re.search(r'\b' + re.escape(keyword) + r'\b', prompt.lower()) for keyword in search_keywords)
+    is_urgent = any(re.search(r'\b' + re.escape(keyword) + r'\b', prompt.lower()) for keyword in urgent_keywords)
 
     if not needs_search:
         search_patterns = [
@@ -118,6 +116,14 @@ def process_prompt(prompt, app_context):
 
     # Save chat data
     _save_chat_data(app_context)
+
+    # === SPEECH OUTPUT ===
+    try:
+        from eidolon.eidolon_tts_client import speak
+        speak(reply)
+    except Exception as e:
+        print(f"⚠️ TTS error: {e}")
+    # =====================
 
     # Send to UI
     _send_response_to_ui(reply, app_context)
@@ -186,11 +192,17 @@ def _perform_web_search(search_query, prompt, app_context):
 
 def _get_search_enhanced_reply(search_query, prompt, app_context):
     """Get enhanced reply using search results"""
+    # Move the complex expression out of the f-string to avoid backslash in f-string expression
+    if ":\n\n" in app_context.chat_history[-1]['content']:
+        search_results_content = app_context.chat_history[-1]['content'].split(":\n\n", 1)[1]
+    else:
+        search_results_content = app_context.chat_history[-1]['content']
+
     search_context = f"""You searched for: "{search_query}"
 
 Here are the current web search results:
 
-{app_context.chat_history[-1]['content'].split(":\n\n", 1)[1] if ":\n\n" in app_context.chat_history[-1]['content'] else app_context.chat_history[-1]['content']}
+{search_results_content}
 
 
 Based on these search results, please provide a comprehensive and accurate answer to the original question: {prompt}

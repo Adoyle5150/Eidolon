@@ -1,20 +1,11 @@
 [
   {
-    "timestamp": "2025-07-03T02:12:53.303935",
-    "query": "search who the top fortnite player is today 2025",
-    "successful_extractions": 7,
+    "timestamp": "2025-07-03T20:04:53.442423",
+    "query": "play Christmas brand new release",
+    "successful_extractions": 5,
     "total_results": 8,
-    "success_rate": 0.875,
-    "results_length": 1562,
-    "intelligent_mode": true
-  },
-  {
-    "timestamp": "2025-07-03T02:18:20.154802",
-    "query": "search who the top world of warcraft player is today 2025",
-    "successful_extractions": 7,
-    "total_results": 8,
-    "success_rate": 0.875,
-    "results_length": 785,
+    "success_rate": 0.625,
+    "results_length": 774,
     "intelligent_mode": true
   }
 ]

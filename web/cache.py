@@ -1,8 +1,11 @@
 import os
 import json
 import hashlib
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict
+
+logger = logging.getLogger(__name__)
 
 class ContentCache:
     """Enhanced cache with expiration and metadata"""
